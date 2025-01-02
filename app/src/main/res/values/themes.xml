@@ -2,4 +2,10 @@
 <resources>
 
     <style name="Theme.EchoJournal" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.EchoJournalSplashScreen" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#1F70F5</item>
+        <item name="postSplashScreenTheme">@style/Theme.EchoJournal</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/mood_splash_icon</item>
+    </style>
 </resources>
