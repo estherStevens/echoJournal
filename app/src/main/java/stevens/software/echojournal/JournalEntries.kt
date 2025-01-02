@@ -8,20 +8,20 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeContentPadding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,33 +34,59 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JournalEntries() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .safeDrawingPadding()
-            .padding(horizontal = 16.dp)
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Text(
-                text = stringResource(R.string.entries_title),
-                fontFamily = interFontFamily,
-                fontWeight = FontWeight.Medium,
-                fontSize = 26.sp,
-                color = colorResource(R.color.dark_black),
-                modifier = Modifier
-                    .padding(top = 8.dp)
-                    .fillMaxWidth()
+    val sheetState = rememberModalBottomSheetState()
+    var showBottomSheet by remember { mutableStateOf(false) }
+
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(
+                onAddEntry = {
+                    showBottomSheet = true
+                }
             )
+        },
+        content = { contentPadding ->
+            Box(
+                modifier = Modifier
+                    .background(backgroundColour())
+                    .padding(contentPadding)
+                    .padding(horizontal = 16.dp)
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Text(
+                        text = stringResource(R.string.entries_title),
+                        fontFamily = interFontFamily,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 26.sp,
+                        color = colorResource(R.color.dark_black),
+                        modifier = Modifier
+                            .padding(top = 8.dp)
+                            .fillMaxWidth()
+                    )
 
-            EmptyState(modifier = Modifier.weight(1f))
+                    EmptyState(modifier = Modifier.weight(1f))
+                }
+            }
 
-            FloatingActionButton()
+            if(showBottomSheet){
+                ModalBottomSheet(
+                    onDismissRequest = {
+                        showBottomSheet = false
+                    },
+                    sheetState = sheetState,
+                    content = {
+                        Text("Bottom sheet")
+                    }
+                )
+            }
         }
-    }
-
+    )
 }
 
 @Composable
@@ -71,8 +97,9 @@ fun backgroundColour() = Brush.verticalGradient(
     )
 )
 
+
 @Composable
-fun EmptyState(modifier: Modifier){
+fun EmptyState(modifier: Modifier) {
     Box(
         modifier = modifier
             .fillMaxWidth(),
@@ -107,11 +134,13 @@ fun EmptyState(modifier: Modifier){
 }
 
 @Composable
-fun FloatingActionButton(){
+fun FloatingActionButton(
+    onAddEntry: () -> Unit,
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 23.dp, end = 9.dp),
+            .padding(end = 9.dp),
         contentAlignment = Alignment.BottomEnd
     ) {
         val brush = Brush.verticalGradient(
@@ -121,7 +150,7 @@ fun FloatingActionButton(){
             )
         )
         IconButton(
-            onClick = { },
+            onClick = onAddEntry,
             modifier = Modifier
                 .clip(CircleShape)
                 .background(brush)
