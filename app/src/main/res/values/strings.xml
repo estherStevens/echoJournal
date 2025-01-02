@@ -1,6 +1,8 @@
 <resources>
     <string name="app_name">EchoJournal</string>
     <string name="entries_title">Your EchoJournal</string>
+    <string name="entries_empty_state_title">No Entries</string>
+    <string name="entries_empty_state_subtitle">Start recording your first Echo </string>
 
 
 

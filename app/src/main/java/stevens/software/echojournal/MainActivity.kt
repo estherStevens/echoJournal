@@ -10,6 +10,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import stevens.software.echojournal.ui.theme.EchoJournalTheme
@@ -42,3 +45,9 @@ fun GreetingPreview() {
         Greeting("Android")
     }
 }
+
+val interFontFamily = FontFamily(
+    Font(R.font.inter_medium, FontWeight.Medium),
+    Font(R.font.inter_regular, FontWeight.Normal)
+
+)
