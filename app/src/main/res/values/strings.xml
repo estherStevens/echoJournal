@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">EchoJournal</string>
+    <string name="entries_title">Your EchoJournal</string>
+
+
+
 </resources>
