@@ -16,6 +16,12 @@
     <color name="very_light_blue_gradient1">#D9E2FF</color>
     <color name="very_light_blue_gradient2">#EEF0FF</color>
 
-    #EEF0FF66
+    <color name="light_red">#FFEDEC</color>
+    <color name="light_purple">#EEF0FF</color>
+    <color name="light_blue_save_button_1">#D9E2FF</color>
+    <color name="light_blue_save_button_2">#EEF0FF</color>
+
+    <color name="bottom_sheet_dialog_bg">#FCFDFE</color>
+
 
 </resources>

@@ -1,9 +1,13 @@
 package stevens.software.echojournal
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -43,11 +47,20 @@ fun JournalEntries() {
     val sheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
 
+    val recordingPermissionState = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            if (isGranted) {
+                showBottomSheet = true
+            }
+        }
+    )
+
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(
                 onAddEntry = {
-                    showBottomSheet = true
+                    recordingPermissionState.launch(android.Manifest.permission.RECORD_AUDIO)
                 }
             )
         },
@@ -74,14 +87,38 @@ fun JournalEntries() {
                 }
             }
 
-            if(showBottomSheet){
+            if (showBottomSheet) {
                 ModalBottomSheet(
+                    containerColor = colorResource(R.color.bottom_sheet_dialog_bg),
                     onDismissRequest = {
                         showBottomSheet = false
                     },
                     sheetState = sheetState,
                     content = {
-                        Text("Bottom sheet")
+                        Box {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.add_entry_recording_title),
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    fontFamily = interFontFamily,
+                                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                                )
+
+                                Spacer(Modifier.size(23.dp))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(44.dp)
+                                ) {
+                                    CancelRecordingButton()
+                                    SaveRecordingButton()
+                                    PauseRecordingButton()
+                                }
+                            }
+                        }
                     }
                 )
             }
@@ -97,6 +134,72 @@ fun backgroundColour() = Brush.verticalGradient(
     )
 )
 
+@Composable
+fun CancelRecordingButton() {
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .background(colorResource(R.color.light_red))
+    ) {
+        Icon(
+            modifier = Modifier.align(Alignment.Center),
+            painter = painterResource(R.drawable.cancel_recording),
+            tint = Color.Unspecified,
+            contentDescription = ""
+        )
+    }
+}
+
+@Composable
+fun SaveRecordingButton() {
+    Box(
+        modifier = Modifier
+            .size(110.dp)
+            .clip(CircleShape)
+            .background(colorResource(R.color.light_blue_save_button_2)),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(95.dp)
+                .clip(CircleShape)
+                .background(colorResource(R.color.light_blue_save_button_1)),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(CircleShape)
+                    .background(colorResource(R.color.dark_blue))
+            ) {
+                Icon(
+                    modifier = Modifier.align(Alignment.Center),
+                    painter = painterResource(R.drawable.save_recording),
+                    tint = Color.Unspecified,
+                    contentDescription = ""
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun PauseRecordingButton() {
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .background(colorResource(R.color.light_purple))
+    ) {
+        Icon(
+            modifier = Modifier.align(Alignment.Center),
+            painter = painterResource(R.drawable.pause_recording),
+            tint = Color.Unspecified,
+            contentDescription = ""
+        )
+    }
+}
 
 @Composable
 fun EmptyState(modifier: Modifier) {
