@@ -1,5 +1,6 @@
-package stevens.software.echojournal
+package stevens.software.echojournal.ui.journal_entries
 
+import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -28,7 +29,6 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,6 +45,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
+import stevens.software.echojournal.R
+import stevens.software.echojournal.interFontFamily
 
 @RequiresApi(Build.VERSION_CODES.S)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -84,7 +86,7 @@ fun JournalEntries(
         floatingActionButton = {
             FloatingActionButton(
                 onAddEntry = {
-                    recordingPermissionState.launch(android.Manifest.permission.RECORD_AUDIO)
+                    recordingPermissionState.launch(Manifest.permission.RECORD_AUDIO)
                 }
             )
         },

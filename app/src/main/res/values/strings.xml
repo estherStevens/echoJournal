@@ -4,6 +4,9 @@
     <string name="entries_empty_state_title">No Entries</string>
     <string name="entries_empty_state_subtitle">Start recording your first Echo</string>
     <string name="add_entry_recording_title">Recording your memories…</string>
+    <string name="new_entry_title">New Entry</string>
+    <string name="new_entry_add_title">Add Title…</string>
+    <string name="new_entry_add_description">Add Description…</string>
 
 
 

@@ -1,10 +1,9 @@
-package stevens.software.echojournal
+package stevens.software.echojournal.ui.journal_entries
 
 import android.content.Context
 import android.os.Build
 import android.os.Environment
 import androidx.annotation.RequiresApi
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.Flow
@@ -13,6 +12,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
+import stevens.software.echojournal.VoiceRecorder
 import java.io.File
 
 @RequiresApi(Build.VERSION_CODES.S)
