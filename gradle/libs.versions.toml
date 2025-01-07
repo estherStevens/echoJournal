@@ -13,6 +13,8 @@ compose_nav = "2.8.5"
 kotlin_serialization = "1.6.2"
 kotlin_serialization_plugin = "2.0.20"
 koin_version = "4.0.0"
+ksp = "2.0.20-1.0.25"
+room = "2.6.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -34,9 +36,13 @@ compose_navigation = { group = "androidx.navigation", name = "navigation-compose
 kotlin-serialization = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlin_serialization" }
 koin =  { group = "io.insert-koin", name = "koin-android",  version.ref = "koin_version"}
 koin-compose =  { group = "io.insert-koin", name = "koin-androidx-compose",  version.ref = "koin_version"}
+room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialize = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin_serialization_plugin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
