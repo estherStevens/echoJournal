@@ -14,7 +14,7 @@ fun MainNavController() {
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = JournalEntries) {
         composable<JournalEntries> {
-            JournalEntries()
+            JournalEntriesScreen()
         }
     }
 }

@@ -1,9 +1,12 @@
 package stevens.software.echojournal
 
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,10 +43,30 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.koin.androidx.compose.koinViewModel
+
+@RequiresApi(Build.VERSION_CODES.S)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun JournalEntriesScreen(
+    viewModel: JournalEntriesViewModel = koinViewModel()
+){
+    val uiState = viewModel.uiState.collectAsStateWithLifecycle()
+
+    println("heyya " + uiState.value.entries)
+    JournalEntries(
+        startRecording = { viewModel.startRecording() },
+        stopRecording = { viewModel.stopRecording() }
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun JournalEntries() {
+fun JournalEntries(
+    startRecording: () -> Unit,
+    stopRecording: () -> Unit,
+) {
     val sheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
 
@@ -51,6 +74,7 @@ fun JournalEntries() {
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { isGranted ->
             if (isGranted) {
+                startRecording()
                 showBottomSheet = true
             }
         }
@@ -114,7 +138,9 @@ fun JournalEntries() {
                                     horizontalArrangement = Arrangement.spacedBy(44.dp)
                                 ) {
                                     CancelRecordingButton()
-                                    SaveRecordingButton()
+                                    SaveRecordingButton(
+                                        onSaveRecording = stopRecording
+                                    )
                                     PauseRecordingButton()
                                 }
                             }
@@ -152,11 +178,16 @@ fun CancelRecordingButton() {
 }
 
 @Composable
-fun SaveRecordingButton() {
+fun SaveRecordingButton(
+    onSaveRecording: () -> Unit
+) {
     Box(
         modifier = Modifier
             .size(110.dp)
             .clip(CircleShape)
+            .clickable{
+                onSaveRecording()
+            }
             .background(colorResource(R.color.light_blue_save_button_2)),
         contentAlignment = Alignment.Center
     ) {
@@ -271,6 +302,8 @@ fun FloatingActionButton(
 @Preview(showSystemUi = true)
 fun Preview() {
     MaterialTheme {
-        JournalEntries()
+        JournalEntries(
+            {}, {}
+        )
     }
 }

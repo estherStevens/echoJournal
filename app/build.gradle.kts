@@ -53,6 +53,8 @@ dependencies {
     implementation(libs.core.splashscreen)
     implementation(libs.kotlin.serialization)
     implementation(libs.compose.navigation)
+    implementation(libs.koin)
+    implementation(libs.koin.compose)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

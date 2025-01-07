@@ -12,6 +12,7 @@ core_splashscreen = "1.0.1"
 compose_nav = "2.8.5"
 kotlin_serialization = "1.6.2"
 kotlin_serialization_plugin = "2.0.20"
+koin_version = "4.0.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -31,6 +32,8 @@ androidx-material3 = { group = "androidx.compose.material3", name = "material3" 
 core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "core_splashscreen" }
 compose_navigation = { group = "androidx.navigation", name = "navigation-compose", version.ref = "compose_nav" }
 kotlin-serialization = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlin_serialization" }
+koin =  { group = "io.insert-koin", name = "koin-android",  version.ref = "koin_version"}
+koin-compose =  { group = "io.insert-koin", name = "koin-androidx-compose",  version.ref = "koin_version"}
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
