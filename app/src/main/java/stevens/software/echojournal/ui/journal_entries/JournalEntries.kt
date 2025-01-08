@@ -5,6 +5,7 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.core.copy
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,10 +19,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -43,21 +52,25 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.unit.DpOffset
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
+import stevens.software.echojournal.JournalEntries
 import stevens.software.echojournal.R
 import stevens.software.echojournal.interFontFamily
+import java.util.Locale
 
 @RequiresApi(Build.VERSION_CODES.S)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JournalEntriesScreen(
     viewModel: JournalEntriesViewModel = koinViewModel()
-){
+) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
 
-    println("heyya " + uiState.value.entries)
     JournalEntries(
+        moods = uiState.value.moods,
+        entries = uiState.value.entries,
         startRecording = { viewModel.startRecording() },
         stopRecording = { viewModel.stopRecording() }
     )
@@ -66,6 +79,8 @@ fun JournalEntriesScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JournalEntries(
+    moods: List<Mood>,
+    entries: List<Entry>,
     startRecording: () -> Unit,
     stopRecording: () -> Unit,
 ) {
@@ -109,7 +124,18 @@ fun JournalEntries(
                             .fillMaxWidth()
                     )
 
-                    EmptyState(modifier = Modifier.weight(1f))
+                    if (entries.isEmpty()) {
+                        EmptyState(modifier = Modifier.weight(1f))
+                    } else {
+                        Spacer(Modifier.size(8.dp))
+                        Row{
+                            MoodsFilterPill(
+                                moods = moods
+                            )
+                            Spacer(Modifier.size(6.dp))
+                            TopicsFilterPill()
+                        }
+                    }
                 }
             }
 
@@ -155,6 +181,212 @@ fun JournalEntries(
 }
 
 @Composable
+fun TopicsFilterPill() {
+    var selected by remember { mutableStateOf(false) }
+
+    FilterChip(
+        selected = selected,
+        onClick = {
+            selected = !selected
+        },
+        label = {
+            Text(
+                text = stringResource(R.string.entries_pill_all_topics),
+                fontWeight = FontWeight.Medium,
+                fontFamily = interFontFamily,
+                fontSize = 16.sp
+            )
+        },
+        colors = FilterChipDefaults.filterChipColors().copy(
+            containerColor = Color.Transparent,
+            selectedContainerColor = Color.White
+        ),
+        border = FilterChipDefaults.filterChipBorder(
+            enabled = true,
+            selected = selected,
+            borderWidth = 1.dp,
+            borderColor = colorResource(R.color.light_grey),
+            selectedBorderColor = colorResource(R.color.dark_blue)
+        ),
+        shape = CircleShape
+    )
+}
+
+@Composable
+fun MoodsFilterPill(
+    moods: List<Mood>
+) {
+    var selected by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(false) }
+    var selectedOptionText by remember { mutableStateOf<Mood?>(null) }
+
+    FilterChip(
+        selected = selected,
+        onClick = {
+            expanded = true
+            selected = !selected
+        },
+        label = {
+            Text(
+                text = stringResource(R.string.entries_pill_all_moods),
+                fontWeight = FontWeight.Medium,
+                fontFamily = interFontFamily,
+                fontSize = 16.sp
+            )
+        },
+        colors = FilterChipDefaults.filterChipColors().copy(
+            containerColor = Color.Transparent,
+            selectedContainerColor = Color.White
+        ),
+        border = FilterChipDefaults.filterChipBorder(
+            enabled = true,
+            selected = selected,
+            borderWidth = 1.dp,
+            borderColor = colorResource(R.color.light_grey),
+            selectedBorderColor = colorResource(R.color.dark_blue)
+        ),
+        shape = CircleShape
+    )
+
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = { expanded = false },
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth()
+            .background(
+                color = Color.White, // Or your desired background color
+                shape = RoundedCornerShape(8.dp)
+            ),
+        containerColor = Color.Transparent,
+        shadowElevation = 0.dp
+    ) {
+        val moods = moods
+        moods.forEach {  mood ->
+            DropdownMenuItem(
+                onClick = {
+                    selectedOptionText = mood
+                    expanded = true
+                },
+                text = {
+                    Text(
+                        text = stringResource(mood.text),
+                        fontWeight = FontWeight.Medium,
+                        fontFamily = interFontFamily,
+                        fontSize = 14.sp,
+                        color = colorResource(R.color.denim_blue)
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(mood.moodIcon),
+                        tint = Color.Unspecified,
+                        contentDescription = null
+                    )
+                }
+            )
+        }
+//        DropdownMenuItem(
+//            modifier = Modifier.fillMaxWidth(),
+//            text = {
+//                Text(
+//                    text = stringResource(R.string.entries_mood_excited),
+//                    fontWeight = FontWeight.Medium,
+//                    fontFamily = interFontFamily,
+//                    fontSize = 14.sp,
+//                    color = colorResource(R.color.denim_blue)
+//                )
+//            },
+//            onClick = { /* Do something... */ },
+//            leadingIcon = {
+//                Icon(
+//                    painter = painterResource(R.drawable.excited_mood),
+//                    tint = Color.Unspecified,
+//                    contentDescription = null
+//                )
+//            }
+//        )
+//        DropdownMenuItem(
+//            text = {
+//                Text(
+//                    text = stringResource(R.string.entries_mood_peaceful),
+//                    fontWeight = FontWeight.Medium,
+//                    fontFamily = interFontFamily,
+//                    fontSize = 14.sp,
+//                    color = colorResource(R.color.denim_blue)
+//                )
+//            },
+//            onClick = { /* Do something... */ },
+//            leadingIcon = {
+//                Icon(
+//                    painter = painterResource(R.drawable.peaceful_mood),
+//                    tint = Color.Unspecified,
+//                    contentDescription = null
+//                )
+//            }
+//        )
+//        DropdownMenuItem(
+//            text = {
+//                Text(
+//                    text = stringResource(R.string.entries_mood_neutral),
+//                    fontWeight = FontWeight.Medium,
+//                    fontFamily = interFontFamily,
+//                    fontSize = 14.sp,
+//                    color = colorResource(R.color.denim_blue)
+//                )
+//            },
+//            onClick = { /* Do something... */ },
+//            leadingIcon = {
+//                Icon(
+//                    painter = painterResource(R.drawable.neutral_mood),
+//                    tint = Color.Unspecified,
+//                    contentDescription = null
+//                )
+//            }
+//        )
+//        DropdownMenuItem(
+//            text = {
+//                Text(
+//                    text = stringResource(R.string.entries_mood_sad),
+//                    fontWeight = FontWeight.Medium,
+//                    fontFamily = interFontFamily,
+//                    fontSize = 14.sp,
+//                    color = colorResource(R.color.denim_blue)
+//                )
+//            },
+//            onClick = { /* Do something... */ },
+//            leadingIcon = {
+//                Icon(
+//                    painter = painterResource(R.drawable.sad_mood),
+//                    tint = Color.Unspecified,
+//                    contentDescription = null
+//                )
+//            }
+//        )
+//        DropdownMenuItem(
+//            text = {
+//                Text(
+//                    text = stringResource(R.string.entries_mood_stressed),
+//                    fontWeight = FontWeight.Medium,
+//                    fontFamily = interFontFamily,
+//                    fontSize = 14.sp,
+//                    color = colorResource(R.color.denim_blue)
+//                )
+//            },
+//            onClick = { /* Do something... */ },
+//            leadingIcon = {
+//                Icon(
+//                    painter = painterResource(R.drawable.stressed_mood),
+//                    tint = Color.Unspecified,
+//                    contentDescription = null
+//                )
+//            }
+//        )
+    }
+}
+
+
+@Composable
 fun backgroundColour() = Brush.verticalGradient(
     listOf(
         colorResource(R.color.very_light_blue_gradient2),
@@ -187,7 +419,7 @@ fun SaveRecordingButton(
         modifier = Modifier
             .size(110.dp)
             .clip(CircleShape)
-            .clickable{
+            .clickable {
                 onSaveRecording()
             }
             .background(colorResource(R.color.light_blue_save_button_2)),
@@ -305,7 +537,18 @@ fun FloatingActionButton(
 fun Preview() {
     MaterialTheme {
         JournalEntries(
+            listOf(),
+            listOf(Entry(title = "heyy", recordingFileName = "", description = "")),
             {}, {}
         )
     }
 }
+
+//enum class Mood {
+//    EXCITED,
+//    PEACEFUL,
+//    NEUTRAL,
+//    SAD,
+//    STRESSED,
+//}
+

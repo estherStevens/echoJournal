@@ -12,28 +12,36 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import stevens.software.echojournal.VoiceRecorder
+import stevens.software.echojournal.data.JournalEntry
+import stevens.software.echojournal.data.repositories.JournalEntriesRepository
 import java.io.File
+import stevens.software.echojournal.R
 
 @RequiresApi(Build.VERSION_CODES.S)
 class JournalEntriesViewModel(
     val context: Context,
-    private val voiceRecorder: VoiceRecorder
+    private val voiceRecorder: VoiceRecorder,
+    private val journalEntriesRepository: JournalEntriesRepository
 ) : ViewModel() {
 
     private val isLoading = MutableStateFlow<Boolean>(true)
 
+
     val uiState = combine(
-        getMyRecordingEntries(),
+        journalEntriesRepository.getAllJournalEntries(),
         isLoading,
-    ) { recordings, isLoading ->
+    ) { entries, isLoading  ->
         JournalEntriesUiState(
-            entries = listOf()
+            moods = allMoods(),
+            entries = entries.map { it.toEntry() },
         )
     }.stateIn(
         viewModelScope,
         SharingStarted.Eagerly,
         JournalEntriesUiState(
+            moods = listOf(),
             entries = listOf(),
         )
     )
@@ -41,10 +49,41 @@ class JournalEntriesViewModel(
 
     fun startRecording(){
         val file = File(context.getExternalFilesDir(Environment.DIRECTORY_RECORDINGS), "newwwwhhh.mp4")
-        println("heyy " + file.absolutePath)
 
         voiceRecorder.startRecording(file)
+
     }
+
+    fun allMoods(): List<Mood> {
+       return listOf(
+            Mood(
+                text = R.string.entries_mood_excited,
+                moodIcon = R.drawable.excited_mood
+            ),
+            Mood(
+                text = R.string.entries_mood_peaceful,
+                moodIcon = R.drawable.peaceful_mood
+            ),
+            Mood(
+                text = R.string.entries_mood_neutral,
+                moodIcon = R.drawable.neutral_mood
+            ),
+            Mood(
+                text = R.string.entries_mood_sad,
+                moodIcon = R.drawable.sad_mood
+            ),
+            Mood(
+                text = R.string.entries_mood_stressed,
+                moodIcon = R.drawable.stressed_mood
+            ),
+        )
+    }
+
+    fun JournalEntry.toEntry() = Entry(
+        title = this.title,
+        recordingFileName = this.recordingFilePath,
+        description = this.description
+    )
 
     fun stopRecording(){
         voiceRecorder.stopRecording()
@@ -52,7 +91,7 @@ class JournalEntriesViewModel(
 
     }
 
-    fun getMyRecordingEntries() : Flow<List<Entry>>{
+   /* fun getMyRecordingEntries() : Flow<List<Entry>>{
         val path = context.getExternalFilesDir(Environment.DIRECTORY_RECORDINGS)
         val files = path?.walkTopDown()?.toList()?.filter {
             it.isFile
@@ -62,11 +101,13 @@ class JournalEntriesViewModel(
             entries.add(Entry(file.nameWithoutExtension))
         }
         return flowOf(entries)
-    }
+    }*/
 
 }
 
 data class JournalEntriesUiState(
+    val moods: List<Mood>,
     val entries: List<Entry>
 )
-data class Entry(val fileName: String)
+data class Entry(val title: String, val recordingFileName: String, val description: String)
+data class Mood(val text: Int, val moodIcon: Int)

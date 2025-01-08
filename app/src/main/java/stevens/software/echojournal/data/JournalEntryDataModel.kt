@@ -7,4 +7,7 @@ import androidx.room.PrimaryKey
 data class JournalEntry(
     @PrimaryKey(autoGenerate = true)
     val id: Int,
+    val title: String,
+    val recordingFilePath: String,
+    val description: String
 )
