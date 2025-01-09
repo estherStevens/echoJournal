@@ -64,15 +64,19 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JournalEntriesScreen(
-    viewModel: JournalEntriesViewModel = koinViewModel()
+    viewModel: JournalEntriesViewModel = koinViewModel(),
+    navigateToCreateEntry: () -> Unit
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
 
     JournalEntries(
         moods = uiState.value.moods,
         entries = uiState.value.entries,
-        startRecording = { viewModel.startRecording() },
-        stopRecording = { viewModel.stopRecording() }
+        onStartRecording = { viewModel.startRecording() },
+        onSaveRecording = {
+            viewModel.stopRecording()
+            navigateToCreateEntry()
+        }
     )
 }
 
@@ -81,8 +85,8 @@ fun JournalEntriesScreen(
 fun JournalEntries(
     moods: List<Mood>,
     entries: List<Entry>,
-    startRecording: () -> Unit,
-    stopRecording: () -> Unit,
+    onStartRecording: () -> Unit,
+    onSaveRecording: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -91,7 +95,7 @@ fun JournalEntries(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { isGranted ->
             if (isGranted) {
-                startRecording()
+                onStartRecording()
                 showBottomSheet = true
             }
         }
@@ -167,7 +171,7 @@ fun JournalEntries(
                                 ) {
                                     CancelRecordingButton()
                                     SaveRecordingButton(
-                                        onSaveRecording = stopRecording
+                                        onSaveRecording = onSaveRecording
                                     )
                                     PauseRecordingButton()
                                 }

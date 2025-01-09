@@ -6,6 +6,8 @@
     <string name="add_entry_recording_title">Recording your memories…</string>
     <string name="new_entry_title">New Entry</string>
     <string name="new_entry_add_title">Add Title…</string>
+    <string name="new_entry_save">Save</string>
+    <string name="new_entry_cancel">Cancel</string>
     <string name="new_entry_add_description">Add Description…</string>
     <string name="entries_pill_all_moods">All Moods</string>
     <string name="entries_pill_all_topics">All Topics</string>
@@ -14,7 +16,6 @@
     <string name="entries_mood_neutral">Neutral</string>
     <string name="entries_mood_sad">Sad</string>
     <string name="entries_mood_stressed">Stressed</string>
-
 
 
 
