@@ -12,14 +12,6 @@ import stevens.software.echojournal.R
 
 class CreateJournalEntryViewModel: ViewModel() {
 
-//    private val _uiState = MutableStateFlow(
-//        CreateEntryUiState(
-//            entryTitle = "",
-//            entryDescription = "",
-//            moods = allMoods()
-//        )
-//    )
-//
     val allMoods = MutableStateFlow<List<SelectableMood>>(initialSetOfSelectableMoods())
     val selectedMood = MutableStateFlow<SelectableMood?>(null)
 
@@ -28,7 +20,7 @@ class CreateJournalEntryViewModel: ViewModel() {
             entryTitle = "",
             entryDescription = "",
             moods = moods,
-            selectedMood = null
+            selectedMood = selectedMood
         )
     }.stateIn(
         viewModelScope,
@@ -40,8 +32,6 @@ class CreateJournalEntryViewModel: ViewModel() {
             selectedMood = null
         )
     )
-
-//    var uiState : StateFlow<CreateEntryUiState> = _uiState.asStateFlow()
 
     fun updateEntryTitle(newEntryTitle: String){
         viewModelScope.launch{

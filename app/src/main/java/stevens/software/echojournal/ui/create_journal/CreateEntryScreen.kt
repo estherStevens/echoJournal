@@ -137,12 +137,14 @@ fun CreateEntry(
                 .padding(contentPadding)
                 .padding(horizontal = 16.dp)
         ) {
+
             Column(modifier = Modifier.fillMaxSize()) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val moodIcon = if(selectedMood == null) R.drawable.add_mood_icon else selectedMood.selectedMoodIcon
                     Icon(
-                        painter = painterResource(R.drawable.add_entry_icon),
+                        painter = painterResource(moodIcon),
                         contentDescription = null,
                         tint = Color.Unspecified,
                         modifier = Modifier.clickable {
@@ -196,7 +198,10 @@ fun CreateEntry(
         if (showBottomSheet) {
             ChooseMoodBottomSheetDialog(
                 moods = moods,
-                onMoodSelected = onMoodSelected,
+                onMoodSelected = {
+                    onMoodSelected(it)
+                    showBottomSheet = false
+                },
                 selectedMood = selectedMood,
                 onDismissBottomSheet = {
                     showBottomSheet = false
@@ -204,6 +209,7 @@ fun CreateEntry(
                 onCancel = {
                     showBottomSheet = false
                 },
+
 //                onConfirmMood = onConfirmMood
             )
         }
