@@ -9,11 +9,13 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import stevens.software.echojournal.data.repositories.JournalEntriesRepository
 import stevens.software.echojournal.data.repositories.JournalEntriesRepositoryImplementation
+import stevens.software.echojournal.ui.create_journal.CreateJournalEntryViewModel
 import stevens.software.echojournal.ui.journal_entries.JournalEntriesViewModel
 
 @RequiresApi(Build.VERSION_CODES.S)
 val appModule = module {
     viewModelOf(::JournalEntriesViewModel)
+    viewModelOf(::CreateJournalEntryViewModel)
     factoryOf(::VoiceRecorder)
     singleOf(::JournalEntriesRepositoryImplementation) { bind<JournalEntriesRepository>() }
 

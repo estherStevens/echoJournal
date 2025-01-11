@@ -16,7 +16,8 @@
     <string name="entries_mood_neutral">Neutral</string>
     <string name="entries_mood_sad">Sad</string>
     <string name="entries_mood_stressed">Stressed</string>
-
+    <string name="choose_mood_bottom_sheet_title">How are you doing?</string>
+    <string name="choose_mood_bottom_sheet_confirm">Confirm</string>
 
 
 

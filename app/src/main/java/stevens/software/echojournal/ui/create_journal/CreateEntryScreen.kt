@@ -1,7 +1,9 @@
 package stevens.software.echojournal.ui.create_journal
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,22 +11,22 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,10 +45,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
 import stevens.software.echojournal.R
 import stevens.software.echojournal.interFontFamily
-import stevens.software.echojournal.ui.journal_entries.JournalEntriesViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,24 +56,38 @@ fun CreateEntryScreen(
     onBackClicked: () -> Unit,
     viewModel: CreateJournalEntryViewModel = koinViewModel()
 ) {
+
+    val uiState = viewModel.uiState.collectAsStateWithLifecycle()
     CreateEntry(
+        moods = uiState.value.moods,
         onBackClicked = onBackClicked,
+        selectedMood = uiState.value.selectedMood,
         onEntryTitleUpdated = {
             viewModel.updateEntryTitle(it)
         },
         onDescriptionUpdated = {
             viewModel.updateEntryDescription(it)
-        }
+        },
+        onMoodSelected = { mood ->
+            viewModel.updateSelectedMood(mood)
+        },
+        onConfirmMood = {}
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateEntry(
+    moods: List<SelectableMood>,
     onBackClicked: () -> Unit,
+    selectedMood: SelectableMood?,
     onEntryTitleUpdated: (String) -> Unit,
-    onDescriptionUpdated: (String) -> Unit
-){
+    onDescriptionUpdated: (String) -> Unit,
+    onMoodSelected: (SelectableMood) -> Unit,
+    onConfirmMood: () -> Unit
+) {
+    var showBottomSheet by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -96,18 +112,23 @@ fun CreateEntry(
                 },
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
-        }, 
+        },
         bottomBar = {
-            Row(modifier = Modifier.fillMaxWidth().padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                CancelEntryButton(
-                    onCancelEntry = {}
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                CancelButton(
+                    onCancel = {}
                 )
                 SaveEntryButton(
                     modifier = Modifier.weight(2f),
                     onSaveEntry = {}
                 )
             }
+
 
         }
     ) { contentPadding ->
@@ -125,7 +146,7 @@ fun CreateEntry(
                         contentDescription = null,
                         tint = Color.Unspecified,
                         modifier = Modifier.clickable {
-
+                            showBottomSheet = true
                         }
                     )
 
@@ -171,12 +192,27 @@ fun CreateEntry(
 
             }
         }
+
+        if (showBottomSheet) {
+            ChooseMoodBottomSheetDialog(
+                moods = moods,
+                onMoodSelected = onMoodSelected,
+                selectedMood = selectedMood,
+                onDismissBottomSheet = {
+                    showBottomSheet = false
+                },
+                onCancel = {
+                    showBottomSheet = false
+                },
+                onConfirmMood = onConfirmMood
+            )
+        }
     }
 }
 
 
 @Composable
-private fun EntryTitle(onEntryTitleUpdated: (String) -> Unit){
+private fun EntryTitle(onEntryTitleUpdated: (String) -> Unit) {
     var entryTitle by remember { mutableStateOf("") }
     TextField(
         value = entryTitle,
@@ -212,7 +248,7 @@ private fun EntryTitle(onEntryTitleUpdated: (String) -> Unit){
 @Composable
 private fun EntryDescription(
     onDescriptionUpdated: (String) -> Unit
-){
+) {
     var entryDescription by remember { mutableStateOf("") }
 
     TextField(
@@ -241,14 +277,15 @@ private fun EntryDescription(
 }
 
 @Composable
-private fun CancelEntryButton(
-    onCancelEntry: () -> Unit
-){
+private fun CancelButton(
+    onCancel: () -> Unit
+) {
     Button(
-        onClick = onCancelEntry,
-        colors =  ButtonDefaults.buttonColors().copy(
+        onClick = onCancel,
+        colors = ButtonDefaults.buttonColors().copy(
             containerColor = colorResource(R.color.light_purple)
-        )){
+        )
+    ) {
         Text(
             text = stringResource(R.string.new_entry_cancel),
             color = colorResource(R.color.blue),
@@ -262,13 +299,15 @@ private fun CancelEntryButton(
 @Composable
 private fun SaveEntryButton(
     modifier: Modifier,
-    onSaveEntry: () -> Unit){
+    onSaveEntry: () -> Unit
+) {
     Button(
         onClick = onSaveEntry,
         modifier = modifier,
-        colors =  ButtonDefaults.buttonColors().copy(
+        colors = ButtonDefaults.buttonColors().copy(
             containerColor = colorResource(R.color.disabled_gred)
-        )){
+        )
+    ) {
         Text(
             text = stringResource(R.string.new_entry_save),
             color = colorResource(R.color.grey),
@@ -279,12 +318,208 @@ private fun SaveEntryButton(
     }
 }
 
+@Composable
+private fun ConfirmMoodButton(
+    enabled: Boolean,
+    modifier: Modifier,
+    onConfirmMood: () -> Unit
+) {
+    val iconTint = if(enabled) Color.White else colorResource(R.color.grey)
+    val textColour = if(enabled) Color.White else colorResource(R.color.grey)
+
+    Button(
+        onClick = onSaveEntry,
+        modifier = modifier,
+        enabled = enabled,
+        colors = ButtonDefaults.buttonColors().copy(
+            containerColor = colorResource(R.color.dark_blue),
+            disabledContainerColor = colorResource(R.color.disabled_gred)
+        )
+    ) {
+        Row{
+            Icon(
+                painterResource(R.drawable.confirm),
+                contentDescription = null,
+                tint = iconTint
+            )
+            Spacer(Modifier.size(6.dp))
+            Text(
+                text = stringResource(R.string.choose_mood_bottom_sheet_confirm),
+                color = textColour,
+                fontFamily = interFontFamily,
+                fontWeight = FontWeight.Medium,
+                fontSize = 16.sp
+            )
+        }
+
+    }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ChooseMoodBottomSheetDialog(
+    moods: List<SelectableMood>,
+    selectedMood: SelectableMood?,
+    onMoodSelected: (SelectableMood) -> Unit,
+    onDismissBottomSheet: () -> Unit,
+    onConfirmMood: () -> Unit,
+    onCancel: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState()
+    ModalBottomSheet(
+        onDismissRequest = onDismissBottomSheet,
+        content = {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = stringResource(R.string.choose_mood_bottom_sheet_title),
+                        fontSize = 22.sp,
+                        fontFamily = interFontFamily,
+                        fontWeight = FontWeight.Medium,
+                        color = colorResource(R.color.dark_black)
+                    )
+                    Spacer(Modifier.size(32.dp))
+                    SelectMood(
+                        options = moods,
+                        selectedMood = selectedMood,
+                        updateSelectedMood = onMoodSelected,
+                        onConfirmMood = onConfirmMood,
+                        onCancel = onCancel
+                    )
+//                    Spacer(Modifier.size(24.dp))
+//                    Row(
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .padding(16.dp),
+//                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+//                    ) {
+//                        CancelEntryButton(
+//                            onCancelEntry = {}
+//                        )
+//                        ConfirmMoodButton(
+//                            selectedMood = selectedMood,
+//                            modifier = Modifier.weight(2f),
+//                            onSaveEntry = {}
+//                        )
+//                    }
+                }
+            }
+        },
+        sheetState = sheetState,
+        containerColor = Color.White,
+    )
+}
+
+@Composable
+fun SelectMood(
+    selectedMood: SelectableMood?,
+    options: List<SelectableMood>,
+    updateSelectedMood: (SelectableMood) -> Unit,
+    onConfirmMood: () -> Unit,
+    onCancel: () -> Unit
+) {
+
+    var selectedOption by remember { mutableStateOf(selectedMood) }
+
+    Row(
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
+        options.forEach { option ->
+            MoodButton(
+                selected = option == selectedOption,
+                onClick = {
+                    selectedOption = option
+                    updateSelectedMood(option)
+                },
+                icon = option.moodIcon,
+                text = option.text,
+                selectedIcon = selectedOption?.selectedMoodIcon // Or any other selected icon
+            )
+
+        }
+    }
+    Spacer(Modifier.size(24.dp))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        CancelButton(
+            onCancel = onCancel
+        )
+        ConfirmMoodButton(
+            enabled = selectedOption != null,
+            modifier = Modifier.weight(2f),
+            onConfirmMood = onConfirmMood
+        )
+    }
+}
+
+@Composable
+fun MoodButton(
+    selected: Boolean,
+    onClick: () -> Unit,
+    icon: Int,
+    text: Int,
+    selectedIcon: Int?,
+) {
+    val textColor = if(selected) R.color.dark_black else R.color.grey
+    val textWeight = if(selected) FontWeight.Medium else FontWeight.Normal
+    val imageHeight = 34.dp
+
+    val interactionSource = remember { MutableInteractionSource() }
+
+    Box(
+        modifier = Modifier
+            .clickable(interactionSource = interactionSource, indication = null) { onClick() }
+    ) {
+        Column(verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally) {
+            if (selected && selectedIcon != null) {
+                Image(
+                    painter = painterResource(selectedIcon),
+                    contentDescription = null,
+                    modifier = Modifier.height(imageHeight)
+                )
+            } else {
+                Image(
+                    painter = painterResource(icon),
+                    contentDescription = null,
+                    modifier = Modifier.height(imageHeight)
+                )
+            }
+
+            Spacer(Modifier.size(10.dp))
+            Text(
+                text = stringResource(text),
+                fontFamily = interFontFamily,
+                color = colorResource(textColor),
+                fontSize = 12.sp,
+                fontWeight = textWeight
+            )
+        }
+    }
+
+}
+
 @Preview
 @Composable
 fun Preview() {
     MaterialTheme {
-        CreateEntry (
-            {}, {}, {}
+        CreateEntry(
+            moods = listOf(),
+
+            onBackClicked = {},
+            selectedMood = SelectableMood(Mood.EXCITED, 0, 0, 0, false),
+            {}, {}, { }
         )
     }
 }
