@@ -71,7 +71,7 @@ fun CreateEntryScreen(
         onMoodSelected = { mood ->
             viewModel.updateSelectedMood(mood)
         },
-        onConfirmMood = {}
+//        onConfirmMood = {}
     )
 }
 
@@ -83,8 +83,8 @@ fun CreateEntry(
     selectedMood: SelectableMood?,
     onEntryTitleUpdated: (String) -> Unit,
     onDescriptionUpdated: (String) -> Unit,
-    onMoodSelected: (SelectableMood) -> Unit,
-    onConfirmMood: () -> Unit
+    onMoodSelected: (SelectableMood?) -> Unit,
+//    onConfirmMood: () -> Unit
 ) {
     var showBottomSheet by remember { mutableStateOf(false) }
 
@@ -204,7 +204,7 @@ fun CreateEntry(
                 onCancel = {
                     showBottomSheet = false
                 },
-                onConfirmMood = onConfirmMood
+//                onConfirmMood = onConfirmMood
             )
         }
     }
@@ -328,7 +328,7 @@ private fun ConfirmMoodButton(
     val textColour = if(enabled) Color.White else colorResource(R.color.grey)
 
     Button(
-        onClick = onSaveEntry,
+        onClick = onConfirmMood,
         modifier = modifier,
         enabled = enabled,
         colors = ButtonDefaults.buttonColors().copy(
@@ -361,9 +361,9 @@ private fun ConfirmMoodButton(
 private fun ChooseMoodBottomSheetDialog(
     moods: List<SelectableMood>,
     selectedMood: SelectableMood?,
-    onMoodSelected: (SelectableMood) -> Unit,
+    onMoodSelected: (SelectableMood?) -> Unit,
     onDismissBottomSheet: () -> Unit,
-    onConfirmMood: () -> Unit,
+//    onConfirmMood: () -> Unit,
     onCancel: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState()
@@ -387,25 +387,9 @@ private fun ChooseMoodBottomSheetDialog(
                         options = moods,
                         selectedMood = selectedMood,
                         updateSelectedMood = onMoodSelected,
-                        onConfirmMood = onConfirmMood,
                         onCancel = onCancel
                     )
-//                    Spacer(Modifier.size(24.dp))
-//                    Row(
-//                        modifier = Modifier
-//                            .fillMaxWidth()
-//                            .padding(16.dp),
-//                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-//                    ) {
-//                        CancelEntryButton(
-//                            onCancelEntry = {}
-//                        )
-//                        ConfirmMoodButton(
-//                            selectedMood = selectedMood,
-//                            modifier = Modifier.weight(2f),
-//                            onSaveEntry = {}
-//                        )
-//                    }
+
                 }
             }
         },
@@ -418,8 +402,8 @@ private fun ChooseMoodBottomSheetDialog(
 fun SelectMood(
     selectedMood: SelectableMood?,
     options: List<SelectableMood>,
-    updateSelectedMood: (SelectableMood) -> Unit,
-    onConfirmMood: () -> Unit,
+    updateSelectedMood: (SelectableMood?) -> Unit,
+//    onConfirmMood: (SelectableMood) -> Unit,
     onCancel: () -> Unit
 ) {
 
@@ -436,7 +420,6 @@ fun SelectMood(
                 selected = option == selectedOption,
                 onClick = {
                     selectedOption = option
-                    updateSelectedMood(option)
                 },
                 icon = option.moodIcon,
                 text = option.text,
@@ -458,7 +441,10 @@ fun SelectMood(
         ConfirmMoodButton(
             enabled = selectedOption != null,
             modifier = Modifier.weight(2f),
-            onConfirmMood = onConfirmMood
+            onConfirmMood = {
+                updateSelectedMood(selectedOption) //todo remove nullable type and just Mood.None instead
+            }
+
         )
     }
 }
