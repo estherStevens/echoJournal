@@ -29,7 +29,7 @@ fun MainNavController() {
         }
         composable<CreateJournalEntry> {
             CreateEntryScreen(
-                onBackClicked = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }

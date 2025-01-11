@@ -53,14 +53,14 @@ import stevens.software.echojournal.interFontFamily
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateEntryScreen(
-    onBackClicked: () -> Unit,
+    onNavigateBack: () -> Unit,
     viewModel: CreateJournalEntryViewModel = koinViewModel()
 ) {
 
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
     CreateEntry(
         moods = uiState.value.moods,
-        onBackClicked = onBackClicked,
+        onNavigateBack = onNavigateBack,
         selectedMood = uiState.value.selectedMood,
         onEntryTitleUpdated = {
             viewModel.updateEntryTitle(it)
@@ -79,7 +79,7 @@ fun CreateEntryScreen(
 @Composable
 fun CreateEntry(
     moods: List<SelectableMood>,
-    onBackClicked: () -> Unit,
+    onNavigateBack: () -> Unit,
     selectedMood: SelectableMood?,
     onEntryTitleUpdated: (String) -> Unit,
     onDescriptionUpdated: (String) -> Unit,
@@ -106,7 +106,7 @@ fun CreateEntry(
                         tint = Color.Unspecified,
                         contentDescription = null,
                         modifier = Modifier.clickable {
-                            onBackClicked()
+                            onNavigateBack()
                         }
                     )
                 },
@@ -121,7 +121,7 @@ fun CreateEntry(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 CancelButton(
-                    onCancel = {}
+                    onCancel = onNavigateBack
                 )
                 SaveEntryButton(
                     modifier = Modifier.weight(2f),
@@ -509,7 +509,7 @@ fun Preview() {
         CreateEntry(
             moods = listOf(),
 
-            onBackClicked = {},
+            onNavigateBack = {},
             selectedMood = SelectableMood(Mood.EXCITED, 0, 0, 0, false),
             {}, {}, { }
         )
