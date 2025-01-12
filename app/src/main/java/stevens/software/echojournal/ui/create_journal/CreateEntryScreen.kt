@@ -62,6 +62,7 @@ fun CreateEntryScreen(
         moods = uiState.value.moods,
         onNavigateBack = onNavigateBack,
         selectedMood = uiState.value.selectedMood,
+        saveButtonEnabled = uiState.value.saveButtonEnabled,
         onEntryTitleUpdated = {
             viewModel.updateEntryTitle(it)
         },
@@ -80,6 +81,7 @@ fun CreateEntryScreen(
 fun CreateEntry(
     moods: List<SelectableMood>,
     onNavigateBack: () -> Unit,
+    saveButtonEnabled: Boolean,
     selectedMood: SelectableMood?,
     onEntryTitleUpdated: (String) -> Unit,
     onDescriptionUpdated: (String) -> Unit,
@@ -114,6 +116,7 @@ fun CreateEntry(
             )
         },
         bottomBar = {
+            val saveButtonEnabledd by remember { mutableStateOf(saveButtonEnabled) }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -125,6 +128,7 @@ fun CreateEntry(
                 )
                 SaveEntryButton(
                     modifier = Modifier.weight(2f),
+                    enabled = saveButtonEnabled,
                     onSaveEntry = {}
                 )
             }
@@ -305,18 +309,22 @@ private fun CancelButton(
 @Composable
 private fun SaveEntryButton(
     modifier: Modifier,
+    enabled: Boolean,
     onSaveEntry: () -> Unit
 ) {
+    val textColor = if(enabled) Color.White else colorResource(R.color.grey)
     Button(
         onClick = onSaveEntry,
         modifier = modifier,
+        enabled = enabled,
         colors = ButtonDefaults.buttonColors().copy(
-            containerColor = colorResource(R.color.disabled_gred)
+            containerColor = colorResource(R.color.dark_blue),
+            disabledContainerColor = colorResource(R.color.disabled_gred)
         )
     ) {
         Text(
             text = stringResource(R.string.new_entry_save),
-            color = colorResource(R.color.grey),
+            color = textColor,
             fontFamily = interFontFamily,
             fontWeight = FontWeight.Medium,
             fontSize = 16.sp
@@ -508,8 +516,8 @@ fun Preview() {
     MaterialTheme {
         CreateEntry(
             moods = listOf(),
-
             onNavigateBack = {},
+            saveButtonEnabled = false,
             selectedMood = SelectableMood(Mood.EXCITED, 0, 0, 0, false),
             {}, {}, { }
         )

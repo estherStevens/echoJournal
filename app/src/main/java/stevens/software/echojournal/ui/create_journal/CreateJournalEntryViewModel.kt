@@ -12,15 +12,20 @@ import stevens.software.echojournal.R
 
 class CreateJournalEntryViewModel: ViewModel() {
 
+    val entryTitle = MutableStateFlow("")
+    val entryDescription = MutableStateFlow("")
     val allMoods = MutableStateFlow<List<SelectableMood>>(initialSetOfSelectableMoods())
     val selectedMood = MutableStateFlow<SelectableMood?>(null)
+    val isSaveButtonEnabled = MutableStateFlow<Boolean>(false)
 
-    val uiState = combine(allMoods, selectedMood) { moods, selectedMood ->
+    val uiState = combine(entryTitle, entryDescription, allMoods, selectedMood, isSaveButtonEnabled)
+    { entryTitle, entryDescription, moods, selectedMood, saveButtonEnabled ->
         CreateEntryUiState(
-            entryTitle = "",
-            entryDescription = "",
+            entryTitle = entryTitle,
+            entryDescription = entryDescription,
             moods = moods,
-            selectedMood = selectedMood
+            selectedMood = selectedMood,
+            saveButtonEnabled = saveButtonEnabled
         )
     }.stateIn(
         viewModelScope,
@@ -29,29 +34,34 @@ class CreateJournalEntryViewModel: ViewModel() {
             entryTitle = "",
             entryDescription = "",
             moods = listOf(),
-            selectedMood = null
+            selectedMood = null,
+            saveButtonEnabled = false
         )
     )
 
     fun updateEntryTitle(newEntryTitle: String){
         viewModelScope.launch{
-            uiState.value.copy(
-                entryTitle = newEntryTitle
-            )
+            val saveButtonEnabled = newEntryTitle != "" && uiState.value.entryDescription != "" && uiState.value.selectedMood != null
+            entryTitle.emit(newEntryTitle)
+            isSaveButtonEnabled.emit(saveButtonEnabled)
         }
     }
 
     fun updateEntryDescription(newEntryDescription: String){
+        val saveButtonEnabled = uiState.value.entryTitle != "" && newEntryDescription != "" && uiState.value.selectedMood != null
+
         viewModelScope.launch{
-            uiState.value.copy(
-                entryDescription = newEntryDescription
-            )
+            entryDescription.emit(newEntryDescription)
+            isSaveButtonEnabled.emit(saveButtonEnabled)
         }
     }
 
     fun updateSelectedMood(selectableMood: SelectableMood?) {
+        val saveButtonEnabled = uiState.value.entryTitle != "" && uiState.value.entryDescription != "" && selectableMood != null
+
         viewModelScope.launch {
             selectedMood.emit(selectableMood)
+            isSaveButtonEnabled.emit(saveButtonEnabled)
         }
     }
 
@@ -98,7 +108,7 @@ class CreateJournalEntryViewModel: ViewModel() {
 }
 
 
-data class CreateEntryUiState(val entryTitle: String, val entryDescription: String, val moods: List<SelectableMood>, val selectedMood: SelectableMood?)
+data class CreateEntryUiState(val entryTitle: String, val entryDescription: String, val moods: List<SelectableMood>, val selectedMood: SelectableMood?, val saveButtonEnabled: Boolean)
 data class SelectableMood(val id: Mood, val text: Int, val moodIcon: Int, val selectedMoodIcon: Int, var isMoodSelected: Boolean)
 enum class Mood {
     EXCITED,
