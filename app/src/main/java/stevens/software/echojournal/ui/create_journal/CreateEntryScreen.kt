@@ -72,7 +72,9 @@ fun CreateEntryScreen(
         onMoodSelected = { mood ->
             viewModel.updateSelectedMood(mood)
         },
-//        onConfirmMood = {}
+        onSaveEntry = {
+            viewModel.saveEntry()
+        }
     )
 }
 
@@ -86,7 +88,7 @@ fun CreateEntry(
     onEntryTitleUpdated: (String) -> Unit,
     onDescriptionUpdated: (String) -> Unit,
     onMoodSelected: (SelectableMood?) -> Unit,
-//    onConfirmMood: () -> Unit
+    onSaveEntry: () -> Unit
 ) {
     var showBottomSheet by remember { mutableStateOf(false) }
 
@@ -116,7 +118,6 @@ fun CreateEntry(
             )
         },
         bottomBar = {
-            val saveButtonEnabledd by remember { mutableStateOf(saveButtonEnabled) }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -129,7 +130,10 @@ fun CreateEntry(
                 SaveEntryButton(
                     modifier = Modifier.weight(2f),
                     enabled = saveButtonEnabled,
-                    onSaveEntry = {}
+                    onSaveEntry = {
+                        onSaveEntry()
+                        onNavigateBack() // todo error handling, only nav back if save is successful
+                    }
                 )
             }
 
@@ -310,7 +314,7 @@ private fun CancelButton(
 private fun SaveEntryButton(
     modifier: Modifier,
     enabled: Boolean,
-    onSaveEntry: () -> Unit
+    onSaveEntry: () -> Unit,
 ) {
     val textColor = if(enabled) Color.White else colorResource(R.color.grey)
     Button(
@@ -519,7 +523,7 @@ fun Preview() {
             onNavigateBack = {},
             saveButtonEnabled = false,
             selectedMood = SelectableMood(Mood.EXCITED, 0, 0, 0, false),
-            {}, {}, { }
+            {}, {}, { }, {}
         )
     }
 }

@@ -9,8 +9,12 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import stevens.software.echojournal.R
+import stevens.software.echojournal.data.JournalEntry
+import stevens.software.echojournal.data.repositories.JournalEntriesRepository
 
-class CreateJournalEntryViewModel: ViewModel() {
+class CreateJournalEntryViewModel(
+    val journalEntriesRepository: JournalEntriesRepository
+): ViewModel() {
 
     val entryTitle = MutableStateFlow("")
     val entryDescription = MutableStateFlow("")
@@ -65,6 +69,20 @@ class CreateJournalEntryViewModel: ViewModel() {
         }
     }
 
+    fun saveEntry() {
+        viewModelScope.launch{
+            journalEntriesRepository.addJournalEntry(uiState.value.toJournalEntry()) //todo error handling
+        }
+    }
+
+    fun CreateEntryUiState.toJournalEntry() =
+        JournalEntry(
+            title = this.entryTitle,
+            recordingFilePath = "",
+            description = this.entryDescription,
+            mood = this.selectedMood?.id ?: Mood.NONE // todo - need to find solution for the null selected mood on start
+        )
+
 
 
     private fun initialSetOfSelectableMoods() = listOf(
@@ -115,5 +133,6 @@ enum class Mood {
     PEACEFUL,
     NEUTRAL,
     SAD,
-    STRESSED
+    STRESSED,
+    NONE
 }

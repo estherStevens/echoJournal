@@ -10,7 +10,7 @@ class JournalEntriesRepositoryImplementation(
 ) : JournalEntriesRepository {
         private val journalEntriesDao = JournalEntriesDatabase.getDatabase(context).journalEntryDao()
 
-    override suspend fun addJournalEntry(entry: JournalEntry) {
+    override suspend fun addJournalEntry(entry: JournalEntry){
         journalEntriesDao.insert(entry)
     }
 
