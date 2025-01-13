@@ -216,10 +216,7 @@ fun CreateEntry(
                 },
                 onCancel = {
                     showBottomSheet = false
-                },
-
-//                onConfirmMood = onConfirmMood
-            )
+                })
         }
     }
 }

@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import stevens.software.echojournal.R
 import stevens.software.echojournal.data.JournalEntry
 import stevens.software.echojournal.data.repositories.JournalEntriesRepository
+import java.time.OffsetDateTime
 
 class CreateJournalEntryViewModel(
     val journalEntriesRepository: JournalEntriesRepository
@@ -80,6 +81,7 @@ class CreateJournalEntryViewModel(
             title = this.entryTitle,
             recordingFilePath = "",
             description = this.entryDescription,
+            timeOfEntry = OffsetDateTime.now(),
             mood = this.selectedMood?.id ?: Mood.NONE // todo - need to find solution for the null selected mood on start
         )
 

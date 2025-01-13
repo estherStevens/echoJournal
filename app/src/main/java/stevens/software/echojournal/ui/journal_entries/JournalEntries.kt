@@ -5,23 +5,23 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
-import androidx.compose.animation.core.copy
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -30,7 +30,6 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -52,13 +51,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
-import stevens.software.echojournal.JournalEntries
 import stevens.software.echojournal.R
 import stevens.software.echojournal.interFontFamily
-import java.util.Locale
 
 @RequiresApi(Build.VERSION_CODES.S)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,11 +77,11 @@ fun JournalEntriesScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun JournalEntries(
     moods: List<Mood>,
-    entries: List<Entry>,
+    entries: List<EntryDateCategory>,
     onStartRecording: () -> Unit,
     onSaveRecording: () -> Unit,
 ) {
@@ -132,13 +129,95 @@ fun JournalEntries(
                         EmptyState(modifier = Modifier.weight(1f))
                     } else {
                         Spacer(Modifier.size(8.dp))
-                        Row{
+                        Row {
                             MoodsFilterPill(
                                 moods = moods
                             )
                             Spacer(Modifier.size(6.dp))
                             TopicsFilterPill()
                         }
+                        Spacer(Modifier.size(8.dp))
+
+                        LazyColumn {
+                            entries.forEach{ entryDate ->
+                                item {
+                                    EntryDateCategory(entryDate.date)
+                                }
+                                items(entryDate.entries) { entry ->
+                                    Row {
+                                        Image(
+                                            painterResource(R.drawable.selected_excited_mood),
+                                            contentDescription = null,
+                                            modifier = Modifier.padding(end = 12.dp, top = 8.dp)
+                                        )
+
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(color = Color.White)
+                                        ) {
+
+                                            Column(modifier = Modifier.padding(14.dp)) {
+                                                Row {
+                                                    Text(
+                                                        text = entry.title,
+                                                        fontWeight = FontWeight.Normal,
+                                                        fontSize = 16.sp,
+                                                        color = colorResource(R.color.dark_black),
+                                                        fontFamily = interFontFamily,
+                                                        modifier = Modifier.weight(2f)
+                                                    )
+                                                    Text(
+                                                        text = entry.entryTime,
+                                                        fontWeight = FontWeight.Medium,
+                                                        fontSize = 14.sp,
+                                                        color = colorResource(R.color.dark_grey),
+                                                        fontFamily = interFontFamily
+                                                    )
+                                                }
+
+                                                Spacer(Modifier.size(8.dp))
+
+                                                Box( // todo - make reusuable so both this screen and create screen can use it
+                                                    modifier = Modifier
+                                                        .clip(CircleShape)
+                                                        .background(colorResource(R.color.light_purple))
+                                                        .fillMaxWidth()
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier.padding(4.dp)
+                                                    ) {
+                                                        Icon(
+                                                            painter = painterResource(R.drawable.play_recording_icon),
+                                                            contentDescription = null,
+                                                            tint = Color.Unspecified
+                                                        )
+                                                    }
+                                                }
+                                                Spacer(Modifier.size(6.dp))
+
+                                                Text(
+                                                    text = entry.description,
+                                                    fontWeight = FontWeight.Medium,
+                                                    fontSize = 14.sp,
+                                                    color = colorResource(R.color.dark_grey),
+                                                    fontFamily = interFontFamily,
+                                                    maxLines = 3, // todo show see more button
+                                                    overflow = TextOverflow.Ellipsis,
+                                                )
+
+
+                                            }
+                                        }
+                                    }
+                                    Spacer(Modifier.size(16.dp))
+                                }
+
+                            }
+
+                        }
+
                     }
                 }
             }
@@ -181,6 +260,18 @@ fun JournalEntries(
                 )
             }
         }
+    )
+}
+
+@Composable
+fun EntryDateCategory(date: String){
+    Text(
+        text = date,
+        fontFamily = interFontFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 12.sp,
+        color = colorResource(R.color.dark_grey),
+        modifier = Modifier.padding(bottom = 16.dp)
     )
 }
 
@@ -266,7 +357,7 @@ fun MoodsFilterPill(
         shadowElevation = 0.dp
     ) {
         val moods = moods
-        moods.forEach {  mood ->
+        moods.forEach { mood ->
             DropdownMenuItem(
                 onClick = {
                     selectedOptionText = mood
@@ -290,102 +381,7 @@ fun MoodsFilterPill(
                 }
             )
         }
-//        DropdownMenuItem(
-//            modifier = Modifier.fillMaxWidth(),
-//            text = {
-//                Text(
-//                    text = stringResource(R.string.entries_mood_excited),
-//                    fontWeight = FontWeight.Medium,
-//                    fontFamily = interFontFamily,
-//                    fontSize = 14.sp,
-//                    color = colorResource(R.color.denim_blue)
-//                )
-//            },
-//            onClick = { /* Do something... */ },
-//            leadingIcon = {
-//                Icon(
-//                    painter = painterResource(R.drawable.excited_mood),
-//                    tint = Color.Unspecified,
-//                    contentDescription = null
-//                )
-//            }
-//        )
-//        DropdownMenuItem(
-//            text = {
-//                Text(
-//                    text = stringResource(R.string.entries_mood_peaceful),
-//                    fontWeight = FontWeight.Medium,
-//                    fontFamily = interFontFamily,
-//                    fontSize = 14.sp,
-//                    color = colorResource(R.color.denim_blue)
-//                )
-//            },
-//            onClick = { /* Do something... */ },
-//            leadingIcon = {
-//                Icon(
-//                    painter = painterResource(R.drawable.peaceful_mood),
-//                    tint = Color.Unspecified,
-//                    contentDescription = null
-//                )
-//            }
-//        )
-//        DropdownMenuItem(
-//            text = {
-//                Text(
-//                    text = stringResource(R.string.entries_mood_neutral),
-//                    fontWeight = FontWeight.Medium,
-//                    fontFamily = interFontFamily,
-//                    fontSize = 14.sp,
-//                    color = colorResource(R.color.denim_blue)
-//                )
-//            },
-//            onClick = { /* Do something... */ },
-//            leadingIcon = {
-//                Icon(
-//                    painter = painterResource(R.drawable.neutral_mood),
-//                    tint = Color.Unspecified,
-//                    contentDescription = null
-//                )
-//            }
-//        )
-//        DropdownMenuItem(
-//            text = {
-//                Text(
-//                    text = stringResource(R.string.entries_mood_sad),
-//                    fontWeight = FontWeight.Medium,
-//                    fontFamily = interFontFamily,
-//                    fontSize = 14.sp,
-//                    color = colorResource(R.color.denim_blue)
-//                )
-//            },
-//            onClick = { /* Do something... */ },
-//            leadingIcon = {
-//                Icon(
-//                    painter = painterResource(R.drawable.sad_mood),
-//                    tint = Color.Unspecified,
-//                    contentDescription = null
-//                )
-//            }
-//        )
-//        DropdownMenuItem(
-//            text = {
-//                Text(
-//                    text = stringResource(R.string.entries_mood_stressed),
-//                    fontWeight = FontWeight.Medium,
-//                    fontFamily = interFontFamily,
-//                    fontSize = 14.sp,
-//                    color = colorResource(R.color.denim_blue)
-//                )
-//            },
-//            onClick = { /* Do something... */ },
-//            leadingIcon = {
-//                Icon(
-//                    painter = painterResource(R.drawable.stressed_mood),
-//                    tint = Color.Unspecified,
-//                    contentDescription = null
-//                )
-//            }
-//        )
+
     }
 }
 
@@ -541,18 +537,10 @@ fun FloatingActionButton(
 fun Preview() {
     MaterialTheme {
         JournalEntries(
-            listOf(),
-            listOf(Entry(title = "heyy", recordingFileName = "", description = "")),
-            {}, {}
+            moods = listOf(),
+            entries = listOf(EntryDateCategory(date = "Today", entries = listOf())),
+            {}, {},
         )
     }
 }
-
-//enum class Mood {
-//    EXCITED,
-//    PEACEFUL,
-//    NEUTRAL,
-//    SAD,
-//    STRESSED,
-//}
 

@@ -4,6 +4,7 @@ import android.content.Context
 import kotlinx.coroutines.flow.Flow
 import stevens.software.echojournal.data.JournalEntriesDatabase
 import stevens.software.echojournal.data.JournalEntry
+import kotlin.collections.sortedBy
 
 class JournalEntriesRepositoryImplementation(
     private val context: Context

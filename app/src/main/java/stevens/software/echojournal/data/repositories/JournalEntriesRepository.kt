@@ -9,6 +9,8 @@ interface JournalEntriesRepository {
 
     fun getAllJournalEntries(): Flow<List<JournalEntry>>
 
+
+
 }
 
 
