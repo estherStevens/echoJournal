@@ -13,7 +13,7 @@ compose_nav = "2.8.5"
 kotlin_serialization = "1.6.2"
 kotlin_serialization_plugin = "2.0.20"
 koin_version = "4.0.0"
-ksp = "2.0.20-1.0.25"
+ksp = "2.0.21-1.0.26"
 room = "2.6.1"
 
 [libraries]

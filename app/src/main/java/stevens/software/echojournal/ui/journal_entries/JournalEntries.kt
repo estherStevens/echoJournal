@@ -80,7 +80,7 @@ fun JournalEntriesScreen(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun JournalEntries(
-    moods: List<Mood>,
+    moods: List<EntryMood>,
     entries: List<EntryDateCategory>,
     onStartRecording: () -> Unit,
     onSaveRecording: () -> Unit,
@@ -146,7 +146,7 @@ fun JournalEntries(
                                 items(entryDate.entries) { entry ->
                                     Row {
                                         Image(
-                                            painterResource(R.drawable.selected_excited_mood),
+                                            painterResource(entry.mood.moodIcon),
                                             contentDescription = null,
                                             modifier = Modifier.padding(end = 12.dp, top = 8.dp)
                                         )
@@ -309,11 +309,11 @@ fun TopicsFilterPill() {
 
 @Composable
 fun MoodsFilterPill(
-    moods: List<Mood>
+    moods: List<EntryMood>
 ) {
     var selected by remember { mutableStateOf(false) }
     var expanded by remember { mutableStateOf(false) }
-    var selectedOptionText by remember { mutableStateOf<Mood?>(null) }
+    var selectedOptionText by remember { mutableStateOf<EntryMood?>(null) }
 
     FilterChip(
         selected = selected,
@@ -356,7 +356,6 @@ fun MoodsFilterPill(
         containerColor = Color.Transparent,
         shadowElevation = 0.dp
     ) {
-        val moods = moods
         moods.forEach { mood ->
             DropdownMenuItem(
                 onClick = {

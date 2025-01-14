@@ -15,6 +15,7 @@ import stevens.software.echojournal.data.JournalEntry
 import stevens.software.echojournal.data.repositories.JournalEntriesRepository
 import java.io.File
 import stevens.software.echojournal.R
+import stevens.software.echojournal.ui.create_journal.Mood
 import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
@@ -67,25 +68,25 @@ class JournalEntriesViewModel(
 
     }
 
-    fun allMoods(): List<Mood> {
+    fun allMoods(): List<EntryMood> {
        return listOf(
-            Mood(
+           EntryMood(
                 text = R.string.entries_mood_excited,
                 moodIcon = R.drawable.excited_mood
             ),
-            Mood(
+           EntryMood(
                 text = R.string.entries_mood_peaceful,
                 moodIcon = R.drawable.peaceful_mood
             ),
-            Mood(
+           EntryMood(
                 text = R.string.entries_mood_neutral,
                 moodIcon = R.drawable.neutral_mood
             ),
-            Mood(
+           EntryMood(
                 text = R.string.entries_mood_sad,
                 moodIcon = R.drawable.sad_mood
             ),
-            Mood(
+           EntryMood(
                 text = R.string.entries_mood_stressed,
                 moodIcon = R.drawable.stressed_mood
             ),
@@ -97,8 +98,51 @@ class JournalEntriesViewModel(
         recordingFileName = this.recordingFilePath,
         description = this.description,
         entryTime = getTime(this.timeOfEntry),
-        entryDate = getDate(this.timeOfEntry)
+        entryDate = getDate(this.timeOfEntry),
+        mood = toMood(this.mood)
     )
+
+
+    fun toMood(mood: Mood) : EntryMood{ //todo simplify. this logic is in too many placea
+         when(mood){
+            Mood.EXCITED -> {
+                return EntryMood(
+                    text = R.string.entries_mood_excited,
+                    moodIcon = R.drawable.selected_excited_mood
+                )
+            }
+            Mood.PEACEFUL -> {
+                return EntryMood(
+                    text = R.string.entries_mood_peaceful,
+                    moodIcon = R.drawable.selected_peaceful_mood
+                )
+            }
+            Mood.NEUTRAL -> {
+               return  EntryMood(
+                    text = R.string.entries_mood_neutral,
+                    moodIcon = R.drawable.selected_neutral_mood
+                )
+            }
+            Mood.SAD -> {
+               return EntryMood(
+                    text = R.string.entries_mood_sad,
+                    moodIcon = R.drawable.selected_sad_mood
+                )
+            }
+            Mood.STRESSED -> {
+               return EntryMood(
+                    text = R.string.entries_mood_stressed,
+                    moodIcon = R.drawable.selected_stressed_mood
+                )
+            }
+            Mood.NONE -> {
+                return EntryMood(
+                    text = R.string.entries_mood_excited,
+                    moodIcon = R.drawable.selected_excited_mood
+                )
+            }
+        }
+    }
 
     fun stopRecording(){
         voiceRecorder.stopRecording()
@@ -143,12 +187,12 @@ class JournalEntriesViewModel(
 }
 
 data class JournalEntriesUiState(
-    val moods: List<Mood>,
+    val moods: List<EntryMood>,
     val entries: List<EntryDateCategory>
 )
 
 
-data class Entry(val title: String, val recordingFileName: String, val description: String, val entryTime: String, val entryDate: String)
-data class Mood(val text: Int, val moodIcon: Int)
+data class Entry(val mood: EntryMood, val title: String, val recordingFileName: String, val description: String, val entryTime: String, val entryDate: String)
+data class EntryMood(val text: Int, val moodIcon: Int)
 data class EntryDateCategory(val date: String, val entries : List<Entry>)
 
