@@ -531,15 +531,15 @@ fun FloatingActionButton(
     }
 }
 
-@Composable
-@Preview(showSystemUi = true)
-fun Preview() {
-    MaterialTheme {
-        JournalEntries(
-            moods = listOf(),
-            entries = listOf(EntryDateCategory(date = "Today", entries = listOf())),
-            {}, {},
-        )
-    }
-}
+//@Composable
+//@Preview(showSystemUi = true)
+//fun Preview() {
+//    MaterialTheme {
+//        JournalEntries(
+//            moods = listOf(),
+//            entries = listOf(EntryDateCategory(date = "Today", entries = listOf())),
+//            {}, {},
+//        )
+//    }
+//}
 

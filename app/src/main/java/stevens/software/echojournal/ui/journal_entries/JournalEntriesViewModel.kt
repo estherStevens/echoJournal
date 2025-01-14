@@ -50,15 +50,15 @@ class JournalEntriesViewModel(
 
 
     fun groupEntriesByDate(entries: List<Entry>) : List<EntryDateCategory>{
-        return entries.groupBy {
+        return entries.sortedByDescending { it.entryDate }.groupBy {
             it.entryDate
-        }.toSortedMap()
-            .map {
+        }.map {
             EntryDateCategory(
-                date = it.key,
+                date = getDate(it.key),
                 entries = it.value
             )
-        }.sortedByDescending { it.date }
+        }
+
     }
 
     fun startRecording(){
@@ -72,7 +72,7 @@ class JournalEntriesViewModel(
         recordingFileName = this.recordingFilePath,
         description = this.description,
         entryTime = getTime(this.timeOfEntry),
-        entryDate = getDate(this.timeOfEntry),
+        entryDate = this.timeOfEntry.toLocalDate(),
         mood = moodsRepository.toEntryMood(this.mood)
     )
 
@@ -87,17 +87,17 @@ class JournalEntriesViewModel(
         return time.format(DateTimeFormatter.ofPattern("HH:mm"))
     }
 
-    fun getDate(time: OffsetDateTime): String {
+    fun getDate(time: LocalDate): String {
         val yesterday = LocalDate.now().minusDays(1)
 
 
        return  when{
-            time.toLocalDate() == LocalDate.now() -> "TODAY" //todo - remove from viewmodel
-            time.toLocalDate() == yesterday -> "YESTERDAY"
+            time == LocalDate.now() -> "TODAY" //todo - remove from viewmodel
+            time == yesterday -> "YESTERDAY"
             else -> {
-                val dayOfWeek = time.toLocalDate().dayOfWeek
-                val month = time.toLocalDate().month
-                val date = time.toLocalDate().dayOfYear
+                val dayOfWeek = time.dayOfWeek
+                val month = time.month
+                val date = time.dayOfYear
 
                 "$dayOfWeek, $month $date"
             }
@@ -125,7 +125,7 @@ data class JournalEntriesUiState(
 )
 
 
-data class Entry(val mood: EntryMood, val title: String, val recordingFileName: String, val description: String, val entryTime: String, val entryDate: String)
+data class Entry(val mood: EntryMood, val title: String, val recordingFileName: String, val description: String, val entryTime: String, val entryDate: LocalDate)
 data class EntryMood(val text: Int, val moodIcon: Int)
 data class EntryDateCategory(val date: String, val entries : List<Entry>)
 
