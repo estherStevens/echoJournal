@@ -15,6 +15,7 @@ import stevens.software.echojournal.data.JournalEntry
 import stevens.software.echojournal.data.repositories.JournalEntriesRepository
 import java.io.File
 import stevens.software.echojournal.R
+import stevens.software.echojournal.data.repositories.MoodsRepository
 import stevens.software.echojournal.ui.create_journal.Mood
 import java.time.LocalDate
 import java.time.OffsetDateTime
@@ -24,18 +25,18 @@ import java.time.format.DateTimeFormatter
 class JournalEntriesViewModel(
     val context: Context,
     private val voiceRecorder: VoiceRecorder,
-    private val journalEntriesRepository: JournalEntriesRepository
+    private val journalEntriesRepository: JournalEntriesRepository,
+    private val moodsRepository: MoodsRepository
 ) : ViewModel() {
 
     private val isLoading = MutableStateFlow<Boolean>(true)
-
 
     val uiState = combine(
         journalEntriesRepository.getAllJournalEntries(),
         isLoading,
     ) { entries, isLoading  ->
         JournalEntriesUiState(
-            moods = allMoods(),
+            moods = moodsRepository.getFilterMoods(),
             entries = groupEntriesByDate(entries.map { it.toEntry() })
         )
     }.stateIn(
@@ -57,41 +58,14 @@ class JournalEntriesViewModel(
                 date = it.key,
                 entries = it.value
             )
-        }
+        }.sortedByDescending { it.date }
     }
-
 
     fun startRecording(){
         val file = File(context.getExternalFilesDir(Environment.DIRECTORY_RECORDINGS), "newwwwhhh.mp4")
-
         voiceRecorder.startRecording(file)
-
     }
 
-    fun allMoods(): List<EntryMood> {
-       return listOf(
-           EntryMood(
-                text = R.string.entries_mood_excited,
-                moodIcon = R.drawable.excited_mood
-            ),
-           EntryMood(
-                text = R.string.entries_mood_peaceful,
-                moodIcon = R.drawable.peaceful_mood
-            ),
-           EntryMood(
-                text = R.string.entries_mood_neutral,
-                moodIcon = R.drawable.neutral_mood
-            ),
-           EntryMood(
-                text = R.string.entries_mood_sad,
-                moodIcon = R.drawable.sad_mood
-            ),
-           EntryMood(
-                text = R.string.entries_mood_stressed,
-                moodIcon = R.drawable.stressed_mood
-            ),
-        )
-    }
 
     fun JournalEntry.toEntry() = Entry(
         title = this.title,
@@ -99,50 +73,9 @@ class JournalEntriesViewModel(
         description = this.description,
         entryTime = getTime(this.timeOfEntry),
         entryDate = getDate(this.timeOfEntry),
-        mood = toMood(this.mood)
+        mood = moodsRepository.toEntryMood(this.mood)
     )
 
-
-    fun toMood(mood: Mood) : EntryMood{ //todo simplify. this logic is in too many placea
-         when(mood){
-            Mood.EXCITED -> {
-                return EntryMood(
-                    text = R.string.entries_mood_excited,
-                    moodIcon = R.drawable.selected_excited_mood
-                )
-            }
-            Mood.PEACEFUL -> {
-                return EntryMood(
-                    text = R.string.entries_mood_peaceful,
-                    moodIcon = R.drawable.selected_peaceful_mood
-                )
-            }
-            Mood.NEUTRAL -> {
-               return  EntryMood(
-                    text = R.string.entries_mood_neutral,
-                    moodIcon = R.drawable.selected_neutral_mood
-                )
-            }
-            Mood.SAD -> {
-               return EntryMood(
-                    text = R.string.entries_mood_sad,
-                    moodIcon = R.drawable.selected_sad_mood
-                )
-            }
-            Mood.STRESSED -> {
-               return EntryMood(
-                    text = R.string.entries_mood_stressed,
-                    moodIcon = R.drawable.selected_stressed_mood
-                )
-            }
-            Mood.NONE -> {
-                return EntryMood(
-                    text = R.string.entries_mood_excited,
-                    moodIcon = R.drawable.selected_excited_mood
-                )
-            }
-        }
-    }
 
     fun stopRecording(){
         voiceRecorder.stopRecording()

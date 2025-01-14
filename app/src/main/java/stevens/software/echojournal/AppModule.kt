@@ -9,6 +9,7 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import stevens.software.echojournal.data.repositories.JournalEntriesRepository
 import stevens.software.echojournal.data.repositories.JournalEntriesRepositoryImplementation
+import stevens.software.echojournal.data.repositories.MoodsRepository
 import stevens.software.echojournal.ui.create_journal.CreateJournalEntryViewModel
 import stevens.software.echojournal.ui.journal_entries.JournalEntriesViewModel
 
@@ -18,5 +19,6 @@ val appModule = module {
     viewModelOf(::CreateJournalEntryViewModel)
     factoryOf(::VoiceRecorder)
     singleOf(::JournalEntriesRepositoryImplementation) { bind<JournalEntriesRepository>() }
+    factoryOf(::MoodsRepository)
 
 }
