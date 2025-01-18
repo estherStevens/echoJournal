@@ -71,8 +71,8 @@ fun JournalEntriesScreen(
         entries = uiState.value.entries,
         onStartRecording = { viewModel.startRecording() },
         onSaveRecording = {
-            viewModel.stopRecording()
             navigateToCreateEntry()
+            viewModel.stopRecording()
         }
     )
 }

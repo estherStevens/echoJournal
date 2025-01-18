@@ -62,6 +62,8 @@ fun CreateEntryScreen(
         moods = uiState.value.moods,
         onNavigateBack = onNavigateBack,
         selectedMood = uiState.value.selectedMood,
+        recordingPlaying = uiState.value.isPlaying,
+        recordingPaused = uiState.value.isPaused,
         saveButtonEnabled = uiState.value.saveButtonEnabled,
         onEntryTitleUpdated = {
             viewModel.updateEntryTitle(it)
@@ -74,6 +76,15 @@ fun CreateEntryScreen(
         },
         onSaveEntry = {
             viewModel.saveEntry()
+        },
+        onPlayClicked = {
+            viewModel.playFile()
+        },
+        onPauseClicked = {
+            viewModel.pauseRecording()
+        },
+        onResumeClicked = {
+            viewModel.resumeRecording()
         }
     )
 }
@@ -85,10 +96,15 @@ fun CreateEntry(
     onNavigateBack: () -> Unit,
     saveButtonEnabled: Boolean,
     selectedMood: SelectableMood?,
+    recordingPlaying: Boolean,
+    recordingPaused: Boolean,
     onEntryTitleUpdated: (String) -> Unit,
     onDescriptionUpdated: (String) -> Unit,
     onMoodSelected: (SelectableMood?) -> Unit,
-    onSaveEntry: () -> Unit
+    onSaveEntry: () -> Unit,
+    onPlayClicked: () -> Unit,
+    onPauseClicked: () -> Unit,
+    onResumeClicked: () -> Unit
 ) {
     var showBottomSheet by remember { mutableStateOf(false) }
 
@@ -175,11 +191,36 @@ fun CreateEntry(
                     Row(
                         modifier = Modifier.padding(4.dp)
                     ) {
-                        Icon(
-                            painter = painterResource(R.drawable.play_recording_icon),
-                            contentDescription = null,
-                            tint = Color.Unspecified
-                        )
+                        if(recordingPlaying) {
+                            Icon(
+                                painter = painterResource(R.drawable.pause_recording_icon),
+                                contentDescription = null,
+                                tint = Color.Unspecified,
+                                modifier = Modifier.clickable{
+                                    onPauseClicked()
+                                }
+                            )
+                        } else if(recordingPaused) {
+                            Icon(
+                                painter = painterResource(R.drawable.play_recording_icon),
+                                contentDescription = null,
+                                tint = Color.Unspecified,
+                                modifier = Modifier.clickable{
+                                    onResumeClicked()
+                                }
+                            )
+                        } else {
+                            Icon(
+                                painter = painterResource(R.drawable.play_recording_icon),
+                                contentDescription = null,
+                                tint = Color.Unspecified,
+                                modifier = Modifier.clickable{
+                                    onPlayClicked()
+                                }
+                            )
+                        }
+
+
                     }
                 }
 
@@ -520,7 +561,11 @@ fun Preview() {
             onNavigateBack = {},
             saveButtonEnabled = false,
             selectedMood = SelectableMood(Mood.EXCITED, 0, 0, 0, false),
-            {}, {}, { }, {}
+            recordingPlaying = false,
+            recordingPaused = true,
+            {}, {}, { }, {}, {},
+            onPauseClicked = {},
+            onResumeClicked = {}
         )
     }
 }

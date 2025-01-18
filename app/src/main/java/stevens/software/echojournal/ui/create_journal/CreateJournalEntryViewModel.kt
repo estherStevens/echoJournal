@@ -2,19 +2,25 @@ package stevens.software.echojournal.ui.create_journal
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import stevens.software.echojournal.MediaPlayer
+import stevens.software.echojournal.PlaybackState
 import stevens.software.echojournal.R
+import stevens.software.echojournal.VoiceRecorder
 import stevens.software.echojournal.data.JournalEntry
 import stevens.software.echojournal.data.repositories.JournalEntriesRepository
 import java.time.OffsetDateTime
 
 class CreateJournalEntryViewModel(
-    val journalEntriesRepository: JournalEntriesRepository
+    val journalEntriesRepository: JournalEntriesRepository,
+    val voiceRecorder: VoiceRecorder,
+    val mediaPlayer: MediaPlayer
 ): ViewModel() {
 
     val entryTitle = MutableStateFlow("")
@@ -23,14 +29,23 @@ class CreateJournalEntryViewModel(
     val selectedMood = MutableStateFlow<SelectableMood?>(null)
     val isSaveButtonEnabled = MutableStateFlow<Boolean>(false)
 
-    val uiState = combine(entryTitle, entryDescription, allMoods, selectedMood, isSaveButtonEnabled)
-    { entryTitle, entryDescription, moods, selectedMood, saveButtonEnabled ->
+    val uiState = combine(
+        entryTitle,
+        entryDescription,
+        allMoods,
+        selectedMood,
+        isSaveButtonEnabled,
+        mediaPlayer.playingState)
+    { entryTitle, entryDescription, moods, selectedMood, saveButtonEnabled, playingState ->
         CreateEntryUiState(
             entryTitle = entryTitle,
             entryDescription = entryDescription,
             moods = moods,
             selectedMood = selectedMood,
-            saveButtonEnabled = saveButtonEnabled
+            saveButtonEnabled = saveButtonEnabled,
+            file = voiceRecorder.filePath,
+            isPlaying = playingState.isPlaying(),
+            isPaused = playingState.isPaused()
         )
     }.stateIn(
         viewModelScope,
@@ -40,9 +55,16 @@ class CreateJournalEntryViewModel(
             entryDescription = "",
             moods = listOf(),
             selectedMood = null,
-            saveButtonEnabled = false
+            saveButtonEnabled = false,
+            file = "",
+            isPlaying = false,
+            isPaused = true
         )
     )
+
+
+    fun PlaybackState.isPlaying() : Boolean = this == PlaybackState.PLAYING
+    fun PlaybackState.isPaused() : Boolean = this == PlaybackState.PAUSED
 
     fun updateEntryTitle(newEntryTitle: String){
         viewModelScope.launch{
@@ -75,6 +97,20 @@ class CreateJournalEntryViewModel(
             journalEntriesRepository.addJournalEntry(uiState.value.toJournalEntry()) //todo error handling
         }
     }
+
+    fun playFile(){
+        mediaPlayer.playFile(voiceRecorder.recordingUri)
+    }
+
+    fun pauseRecording(){
+        mediaPlayer.pauseRecording()
+    }
+
+
+    fun resumeRecording(){
+        mediaPlayer.resumeRecording()
+    }
+
 
     fun CreateEntryUiState.toJournalEntry() =
         JournalEntry(
@@ -125,10 +161,41 @@ class CreateJournalEntryViewModel(
             ),
         )
 
+    fun <T1, T2, T3, T4, T5, T6, R> combine(
+        flow: Flow<T1>,
+        flow2: Flow<T2>,
+        flow3: Flow<T3>,
+        flow4: Flow<T4>,
+        flow5: Flow<T5>,
+        flow6: Flow<T6>,
+        transform: suspend (T1, T2, T3, T4, T5, T6) -> R
+    ): Flow<R> = combine(
+        combine(flow, flow2, flow3, ::Triple),
+        combine(flow4, flow5, flow6, ::Triple)
+    ) { t1, t2 ->
+        transform(
+            t1.first,
+            t1.second,
+            t1.third,
+            t2.first,
+            t2.second,
+            t2.third
+        )
+    }
+
 }
 
 
-data class CreateEntryUiState(val entryTitle: String, val entryDescription: String, val moods: List<SelectableMood>, val selectedMood: SelectableMood?, val saveButtonEnabled: Boolean)
+
+data class CreateEntryUiState(
+    val entryTitle: String,
+    val entryDescription: String,
+    val moods: List<SelectableMood>,
+    val selectedMood: SelectableMood?,
+    val file: String,
+    val saveButtonEnabled: Boolean,
+    val isPlaying: Boolean,
+    val isPaused: Boolean)
 data class SelectableMood(val id: Mood, val text: Int, val moodIcon: Int, val selectedMoodIcon: Int, var isMoodSelected: Boolean)
 enum class Mood {
     EXCITED,

@@ -17,7 +17,8 @@ import stevens.software.echojournal.ui.journal_entries.JournalEntriesViewModel
 val appModule = module {
     viewModelOf(::JournalEntriesViewModel)
     viewModelOf(::CreateJournalEntryViewModel)
-    factoryOf(::VoiceRecorder)
+    singleOf(::VoiceRecorder)
+    factoryOf(::MediaPlayer)
     singleOf(::JournalEntriesRepositoryImplementation) { bind<JournalEntriesRepository>() }
     factoryOf(::MoodsRepository)
 

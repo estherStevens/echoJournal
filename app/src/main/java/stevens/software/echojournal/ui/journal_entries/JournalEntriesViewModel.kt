@@ -30,6 +30,7 @@ class JournalEntriesViewModel(
 ) : ViewModel() {
 
     private val isLoading = MutableStateFlow<Boolean>(true)
+//    var fileName = ""
 
     val uiState = combine(
         journalEntriesRepository.getAllJournalEntries(),
@@ -62,8 +63,10 @@ class JournalEntriesViewModel(
     }
 
     fun startRecording(){
-        val file = File(context.getExternalFilesDir(Environment.DIRECTORY_RECORDINGS), "newwwwhhh.mp4")
-        voiceRecorder.startRecording(file)
+//        val time = LocalDate.now()
+//        fileName = "Entry_$time.mp4"
+//        val file = File(context.getExternalFilesDir(Environment.DIRECTORY_RECORDINGS), fileName)
+        voiceRecorder.startRecording()
     }
 
 
@@ -77,9 +80,10 @@ class JournalEntriesViewModel(
     )
 
 
+    fun getFileName() = voiceRecorder.filePath
+
     fun stopRecording(){
         voiceRecorder.stopRecording()
-
     }
 
     fun getTime(time: OffsetDateTime): String {
