@@ -2,7 +2,6 @@ package stevens.software.echojournal.ui.journal_entries
 
 import android.content.Context
 import android.os.Build
-import android.os.Environment
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,11 +9,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import stevens.software.echojournal.MediaPlayer
+import stevens.software.echojournal.PlaybackState
+import stevens.software.echojournal.Recording
 import stevens.software.echojournal.VoiceRecorder
 import stevens.software.echojournal.data.JournalEntry
 import stevens.software.echojournal.data.repositories.JournalEntriesRepository
-import java.io.File
-import stevens.software.echojournal.R
 import stevens.software.echojournal.data.repositories.MoodsRepository
 import stevens.software.echojournal.ui.create_journal.Mood
 import java.time.LocalDate
@@ -26,19 +26,23 @@ class JournalEntriesViewModel(
     val context: Context,
     private val voiceRecorder: VoiceRecorder,
     private val journalEntriesRepository: JournalEntriesRepository,
-    private val moodsRepository: MoodsRepository
+    private val moodsRepository: MoodsRepository,
+    private val mediaPlayer: MediaPlayer
 ) : ViewModel() {
 
     private val isLoading = MutableStateFlow<Boolean>(true)
-//    var fileName = ""
+
 
     val uiState = combine(
         journalEntriesRepository.getAllJournalEntries(),
         isLoading,
-    ) { entries, isLoading  ->
+        mediaPlayer.playingTrack
+    ) { entries, isLoading, playingState ->
         JournalEntriesUiState(
             moods = moodsRepository.getFilterMoods(),
-            entries = groupEntriesByDate(entries.map { it.toEntry() })
+            entries = groupEntriesByDate(
+                entries = entries.map { it.toEntry(playingState) },
+            ),
         )
     }.stateIn(
         viewModelScope,
@@ -63,26 +67,42 @@ class JournalEntriesViewModel(
     }
 
     fun startRecording(){
-//        val time = LocalDate.now()
-//        fileName = "Entry_$time.mp4"
-//        val file = File(context.getExternalFilesDir(Environment.DIRECTORY_RECORDINGS), fileName)
         voiceRecorder.startRecording()
     }
 
 
-    fun JournalEntry.toEntry() = Entry(
-        title = this.title,
-        recordingFileName = this.recordingFilePath,
-        description = this.description,
-        entryTime = getTime(this.timeOfEntry),
-        entryDate = this.timeOfEntry.toLocalDate(),
-        mood = moodsRepository.toEntryMood(this.mood)
-    )
+    fun JournalEntry.toEntry(playbackState: PlayingTrack?) : Entry {
+        var recording = voiceRecorder.getRecording(this.recordingFilePath)
+        var playingState = PlaybackState.STOPPED
+        if(playbackState?.file == this.recordingFilePath) {
+            playingState = playbackState.playbackState
+        }
+        return Entry(
+            title = this.title,
+            recordingFileName = this.recordingFilePath,
+            description = this.description,
+            entryTime = getTime(this.timeOfEntry),
+            entryDate = this.timeOfEntry.toLocalDate(),
+            mood = moodsRepository.toEntryMood(this.mood),
+            recording = recording,
+            playingState = playingState
+        )
+    }
+
+    fun playRecording(entry: Entry){
+        mediaPlayer.playFile(entry.recording?.contentUri, entry.recording?.name.toString())
+    }
+
+    fun pauseRecording(){
+        mediaPlayer.pauseRecording()
+    }
+
+    fun resumeRecording(){
+        mediaPlayer.resumeRecording()
+    }
 
 
-    fun getFileName() = voiceRecorder.filePath
-
-    fun stopRecording(){
+    fun saveRecording(){
         voiceRecorder.stopRecording()
     }
 
@@ -129,7 +149,16 @@ data class JournalEntriesUiState(
 )
 
 
-data class Entry(val mood: EntryMood, val title: String, val recordingFileName: String, val description: String, val entryTime: String, val entryDate: LocalDate)
-data class EntryMood(val text: Int, val moodIcon: Int)
+data class Entry(
+    val mood: EntryMood,
+    val title: String,
+    val recordingFileName: String,
+    val description: String,
+    val entryTime: String,
+    val entryDate: LocalDate,
+    val recording: Recording?,
+    val playingState: PlaybackState
+)
+data class EntryMood(val id: Mood, val text: Int, val moodIcon: Int)
 data class EntryDateCategory(val date: String, val entries : List<Entry>)
-
+data class PlayingTrack(val file: String, val playbackState: PlaybackState)

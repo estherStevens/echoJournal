@@ -29,7 +29,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -46,7 +45,6 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.getValue
@@ -54,8 +52,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
+import stevens.software.echojournal.PlaybackState
 import stevens.software.echojournal.R
 import stevens.software.echojournal.interFontFamily
+import stevens.software.echojournal.ui.common.RecordingTrack
 
 @RequiresApi(Build.VERSION_CODES.S)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -72,7 +72,16 @@ fun JournalEntriesScreen(
         onStartRecording = { viewModel.startRecording() },
         onSaveRecording = {
             navigateToCreateEntry()
-            viewModel.stopRecording()
+            viewModel.saveRecording()
+        },
+        onPlayClicked = {
+            viewModel.playRecording(it)
+        },
+        onPauseClicked = {
+            viewModel.pauseRecording()
+        },
+        onResumeClicked = {
+            viewModel.resumeRecording()
         }
     )
 }
@@ -84,6 +93,9 @@ fun JournalEntries(
     entries: List<EntryDateCategory>,
     onStartRecording: () -> Unit,
     onSaveRecording: () -> Unit,
+    onPlayClicked: (Entry) -> Unit,
+    onPauseClicked: (Entry) -> Unit,
+    onResumeClicked: (Entry) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -179,22 +191,22 @@ fun JournalEntries(
 
                                                 Spacer(Modifier.size(8.dp))
 
-                                                Box( // todo - make reusuable so both this screen and create screen can use it
-                                                    modifier = Modifier
-                                                        .clip(CircleShape)
-                                                        .background(colorResource(R.color.light_purple))
-                                                        .fillMaxWidth()
-                                                ) {
-                                                    Row(
-                                                        modifier = Modifier.padding(4.dp)
-                                                    ) {
-                                                        Icon(
-                                                            painter = painterResource(R.drawable.play_recording_icon),
-                                                            contentDescription = null,
-                                                            tint = Color.Unspecified
-                                                        )
+                                                RecordingTrack(
+                                                    selectedMood = entry.mood.id,
+                                                    position = 0F,
+                                                    trackDuration = 0F,
+                                                    playbackState = entry.playingState,
+                                                    onPlayClicked = {
+                                                        onPlayClicked(entry)
+                                                    },
+                                                    onPauseClicked = {
+                                                        onPauseClicked(entry)
+                                                    },
+                                                    onResumeClicked = {
+                                                        onResumeClicked(entry)
                                                     }
-                                                }
+                                                )
+
                                                 Spacer(Modifier.size(6.dp))
 
                                                 Text(
