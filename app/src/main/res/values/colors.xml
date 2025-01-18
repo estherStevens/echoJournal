@@ -30,5 +30,17 @@
     <color name="disabled_gred">#E1E2EC</color>
     <color name="grey">#6C7085</color>
 
+    <color name="sad_mood">#3A8EDE</color>
+    <color name="excited_mood">#DB6C0B</color>
+    <color name="stressed_mood">#DE3A3A</color>
+    <color name="peaceful_mood">#BE3294</color>
+    <color name="neutral_mood">#41B278</color>
+
+    <color name="sad_mood_track_background">#EFF4F8</color>
+    <color name="excited_mood_track_background">#F5F2EF</color>
+    <color name="stressed_mood_track_background">#F8EFEF</color>
+    <color name="peaceful_mood_track_background">#F6F2F5</color>
+    <color name="neutral_mood_track_background">#EEF7F3</color>
+
 
 </resources>

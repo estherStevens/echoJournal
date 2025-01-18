@@ -44,8 +44,7 @@ class CreateJournalEntryViewModel(
             selectedMood = selectedMood,
             saveButtonEnabled = saveButtonEnabled,
             file = voiceRecorder.filePath,
-            isPlaying = playingState.isPlaying(),
-            isPaused = playingState.isPaused()
+            playbackState = playingState
         )
     }.stateIn(
         viewModelScope,
@@ -57,8 +56,7 @@ class CreateJournalEntryViewModel(
             selectedMood = null,
             saveButtonEnabled = false,
             file = "",
-            isPlaying = false,
-            isPaused = true
+            playbackState = PlaybackState.STOPPED
         )
     )
 
@@ -194,8 +192,8 @@ data class CreateEntryUiState(
     val selectedMood: SelectableMood?,
     val file: String,
     val saveButtonEnabled: Boolean,
-    val isPlaying: Boolean,
-    val isPaused: Boolean)
+    val playbackState: PlaybackState)
+
 data class SelectableMood(val id: Mood, val text: Int, val moodIcon: Int, val selectedMoodIcon: Int, var isMoodSelected: Boolean)
 enum class Mood {
     EXCITED,

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -47,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
+import stevens.software.echojournal.PlaybackState
 import stevens.software.echojournal.R
 import stevens.software.echojournal.interFontFamily
 
@@ -62,8 +64,7 @@ fun CreateEntryScreen(
         moods = uiState.value.moods,
         onNavigateBack = onNavigateBack,
         selectedMood = uiState.value.selectedMood,
-        recordingPlaying = uiState.value.isPlaying,
-        recordingPaused = uiState.value.isPaused,
+        playbackState = uiState.value.playbackState,
         saveButtonEnabled = uiState.value.saveButtonEnabled,
         onEntryTitleUpdated = {
             viewModel.updateEntryTitle(it)
@@ -96,8 +97,7 @@ fun CreateEntry(
     onNavigateBack: () -> Unit,
     saveButtonEnabled: Boolean,
     selectedMood: SelectableMood?,
-    recordingPlaying: Boolean,
-    recordingPaused: Boolean,
+    playbackState: PlaybackState,
     onEntryTitleUpdated: (String) -> Unit,
     onDescriptionUpdated: (String) -> Unit,
     onMoodSelected: (SelectableMood?) -> Unit,
@@ -182,47 +182,14 @@ fun CreateEntry(
 
                 }
                 Spacer(Modifier.size(16.dp))
-                Box(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(colorResource(R.color.light_purple))
-                        .fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(4.dp)
-                    ) {
-                        if(recordingPlaying) {
-                            Icon(
-                                painter = painterResource(R.drawable.pause_recording_icon),
-                                contentDescription = null,
-                                tint = Color.Unspecified,
-                                modifier = Modifier.clickable{
-                                    onPauseClicked()
-                                }
-                            )
-                        } else if(recordingPaused) {
-                            Icon(
-                                painter = painterResource(R.drawable.play_recording_icon),
-                                contentDescription = null,
-                                tint = Color.Unspecified,
-                                modifier = Modifier.clickable{
-                                    onResumeClicked()
-                                }
-                            )
-                        } else {
-                            Icon(
-                                painter = painterResource(R.drawable.play_recording_icon),
-                                contentDescription = null,
-                                tint = Color.Unspecified,
-                                modifier = Modifier.clickable{
-                                    onPlayClicked()
-                                }
-                            )
-                        }
 
-
-                    }
-                }
+                Track(
+                    selectedMood = selectedMood,
+                    playbackState = playbackState,
+                    onPlayClicked = onPlayClicked,
+                    onPauseClicked = onPauseClicked,
+                    onResumeClicked = onResumeClicked
+                )
 
                 Spacer(Modifier.size(16.dp))
 
@@ -262,6 +229,93 @@ fun CreateEntry(
     }
 }
 
+
+@Composable
+private fun Track(
+    selectedMood: SelectableMood?,
+    playbackState: PlaybackState,
+    onPauseClicked: () -> Unit,
+    onResumeClicked: () -> Unit,
+    onPlayClicked: () -> Unit
+){
+    val iconColor = when(selectedMood?.id) {
+        Mood.EXCITED -> colorResource(R.color.excited_mood)
+        Mood.PEACEFUL -> colorResource(R.color.peaceful_mood)
+        Mood.NEUTRAL -> colorResource(R.color.neutral_mood)
+        Mood.SAD -> colorResource(R.color.sad_mood)
+        Mood.STRESSED -> colorResource(R.color.stressed_mood)
+        Mood.NONE -> colorResource(R.color.blue)
+        null -> colorResource(R.color.blue)
+    }
+
+    val trackBackground = when(selectedMood?.id) {
+        Mood.EXCITED -> colorResource(R.color.excited_mood_track_background)
+        Mood.PEACEFUL -> colorResource(R.color.peaceful_mood_track_background)
+        Mood.NEUTRAL -> colorResource(R.color.neutral_mood_track_background)
+        Mood.SAD -> colorResource(R.color.sad_mood_track_background)
+        Mood.STRESSED -> colorResource(R.color.stressed_mood_track_background)
+        Mood.NONE -> colorResource(R.color.very_light_blue_gradient2)
+        null -> colorResource(R.color.very_light_blue_gradient2)
+    }
+
+    Box(
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(trackBackground)
+            .fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(4.dp)
+        ) {
+            when(playbackState) {
+                PlaybackState.PLAYING -> {
+                    TrackControlButton(
+                        icon = R.drawable.pause_recording_icon,
+                        color = iconColor,
+                        onClick = onPauseClicked
+                    )
+                }
+                PlaybackState.PAUSED -> {
+                    TrackControlButton(
+                        icon = R.drawable.play_recording_icon,
+                        color = iconColor,
+                        onClick = onResumeClicked
+                    )
+                }
+                PlaybackState.STOPPED -> {
+                    TrackControlButton(
+                        icon = R.drawable.play_recording_icon,
+                        color = iconColor,
+                        onClick = onPlayClicked
+                    )
+                }
+            }
+        }
+    }
+
+}
+
+@Composable
+fun TrackControlButton(icon: Int, color: Color, onClick: () -> Unit){
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(Color.White)
+            .size(32.dp)
+            .padding(4.dp)
+
+    ) {
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.clickable {
+                onClick()
+            }
+        )
+    }
+}
 
 @Composable
 private fun EntryTitle(onEntryTitleUpdated: (String) -> Unit) {
@@ -419,7 +473,6 @@ private fun ChooseMoodBottomSheetDialog(
     selectedMood: SelectableMood?,
     onMoodSelected: (SelectableMood?) -> Unit,
     onDismissBottomSheet: () -> Unit,
-//    onConfirmMood: () -> Unit,
     onCancel: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState()
@@ -561,8 +614,7 @@ fun Preview() {
             onNavigateBack = {},
             saveButtonEnabled = false,
             selectedMood = SelectableMood(Mood.EXCITED, 0, 0, 0, false),
-            recordingPlaying = false,
-            recordingPaused = true,
+            playbackState = PlaybackState.PLAYING,
             {}, {}, { }, {}, {},
             onPauseClicked = {},
             onResumeClicked = {}
