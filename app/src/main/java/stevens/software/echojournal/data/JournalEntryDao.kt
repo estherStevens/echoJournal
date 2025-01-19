@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
@@ -20,4 +21,12 @@ interface JournalEntryDao {
 
     @Query("Select * from entries")
     fun getAllEntries() : Flow<List<JournalEntry>>
+
+//    @Transaction
+//    @Query("SELECT * FROM entries")
+//    fun getEntriesWithTopics():  Flow<List<EntryWithTopics>>
+
+    @Transaction
+    @Query("SELECT * FROM entries")
+    fun getEntriesWithTopics(): List<EntryWithTopics>
 }

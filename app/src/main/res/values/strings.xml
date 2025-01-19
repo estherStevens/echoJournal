@@ -9,6 +9,8 @@
     <string name="new_entry_save">Save</string>
     <string name="new_entry_cancel">Cancel</string>
     <string name="new_entry_add_description">Add Description…</string>
+    <string name="new_entry_add_topic">Topic</string>
+    <string name="new_entry_create_topic">Create %s</string>
     <string name="entries_pill_all_moods">All Moods</string>
     <string name="entries_pill_all_topics">All Topics</string>
     <string name="entries_mood_excited">Excited</string>

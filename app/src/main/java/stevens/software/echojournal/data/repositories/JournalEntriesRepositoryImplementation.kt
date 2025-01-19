@@ -11,8 +11,9 @@ class JournalEntriesRepositoryImplementation(
 ) : JournalEntriesRepository {
         private val journalEntriesDao = JournalEntriesDatabase.getDatabase(context).journalEntryDao()
 
-    override suspend fun addJournalEntry(entry: JournalEntry){
-        journalEntriesDao.insert(entry)
+    override suspend fun addJournalEntry(entry: JournalEntry) {
+        val i = journalEntriesDao.insert(entry)
+        val o = i
     }
 
     override fun getAllJournalEntries(): Flow<List<JournalEntry>> {

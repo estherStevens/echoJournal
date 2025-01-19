@@ -10,6 +10,8 @@ import org.koin.dsl.module
 import stevens.software.echojournal.data.repositories.JournalEntriesRepository
 import stevens.software.echojournal.data.repositories.JournalEntriesRepositoryImplementation
 import stevens.software.echojournal.data.repositories.MoodsRepository
+import stevens.software.echojournal.data.repositories.TopicsRepository
+import stevens.software.echojournal.data.repositories.TopicsRepositoryImplementation
 import stevens.software.echojournal.ui.create_journal.CreateJournalEntryViewModel
 import stevens.software.echojournal.ui.journal_entries.JournalEntriesViewModel
 
@@ -20,6 +22,8 @@ val appModule = module {
     singleOf(::VoiceRecorder)
     factoryOf(::MediaPlayer)
     singleOf(::JournalEntriesRepositoryImplementation) { bind<JournalEntriesRepository>() }
+    singleOf(::TopicsRepositoryImplementation) { bind<TopicsRepository>() }
+
     factoryOf(::MoodsRepository)
 
 }

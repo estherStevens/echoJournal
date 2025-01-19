@@ -23,7 +23,6 @@ import java.time.format.DateTimeFormatter
 
 @RequiresApi(Build.VERSION_CODES.S)
 class JournalEntriesViewModel(
-    val context: Context,
     private val voiceRecorder: VoiceRecorder,
     private val journalEntriesRepository: JournalEntriesRepository,
     private val moodsRepository: MoodsRepository,
@@ -31,7 +30,6 @@ class JournalEntriesViewModel(
 ) : ViewModel() {
 
     private val isLoading = MutableStateFlow<Boolean>(true)
-
 
     val uiState = combine(
         journalEntriesRepository.getAllJournalEntries(),

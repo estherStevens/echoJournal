@@ -1,6 +1,7 @@
 package stevens.software.echojournal.ui.create_journal
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -12,10 +13,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSizeIn
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -30,10 +37,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -42,13 +51,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
 import stevens.software.echojournal.PlaybackState
 import stevens.software.echojournal.R
 import stevens.software.echojournal.Recording
+import stevens.software.echojournal.data.Topic
 import stevens.software.echojournal.interFontFamily
 import stevens.software.echojournal.ui.common.RecordingTrack
+import stevens.software.echojournal.ui.journal_entries.EntryMood
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,6 +77,7 @@ fun CreateEntryScreen(
         playbackState = uiState.value.playbackState,
         position = uiState.value.progressPosition,
         recording = uiState.value.recording,
+        topics = uiState.value.topics,
         currentPosition = uiState.value.currentPosition,
         saveButtonEnabled = uiState.value.saveButtonEnabled,
         onEntryTitleUpdated = {
@@ -87,6 +100,12 @@ fun CreateEntryScreen(
         },
         onResumeClicked = {
             viewModel.resumeRecording()
+        },
+        onTopicChanged = {
+
+        },
+        onCreateTopic = {
+            viewModel.saveTopic(it)
         }
     )
 }
@@ -100,6 +119,7 @@ fun CreateEntry(
     selectedMood: SelectableMood?,
     playbackState: PlaybackState,
     position: Float,
+    topics: List<EntryTopic>,
     recording: Recording?,
     currentPosition: Long,
     onEntryTitleUpdated: (String) -> Unit,
@@ -108,7 +128,9 @@ fun CreateEntry(
     onSaveEntry: () -> Unit,
     onPlayClicked: () -> Unit,
     onPauseClicked: () -> Unit,
-    onResumeClicked: () -> Unit
+    onResumeClicked: () -> Unit,
+    onTopicChanged: () -> Unit,
+    onCreateTopic:(String) -> Unit
 ) {
     var showBottomSheet by remember { mutableStateOf(false) }
 
@@ -204,6 +226,23 @@ fun CreateEntry(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
+                        painter = painterResource(R.drawable.topic_icon),
+                        contentDescription = null,
+                        tint = Color.Unspecified
+                    )
+                    EntryTopic (
+                        topics = topics,
+                        onCreateTopic = onCreateTopic,
+                        onTopicChanged = {}
+                    )
+                }
+
+                Spacer(Modifier.size(16.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
                         painter = painterResource(R.drawable.pencil_icon),
                         contentDescription = null,
                         tint = Color.Unspecified
@@ -211,8 +250,9 @@ fun CreateEntry(
                     EntryDescription(
                         onDescriptionUpdated = onDescriptionUpdated
                     )
-
                 }
+
+
 
 
             }
@@ -268,6 +308,153 @@ private fun EntryTitle(onEntryTitleUpdated: (String) -> Unit) {
             unfocusedIndicatorColor = Color.Transparent
         )
     )
+}
+
+@Composable
+private fun EntryTopic(
+    topics: List<EntryTopic>,
+    onTopicChanged: (String) -> Unit,
+    onCreateTopic: (String) -> Unit
+) {
+    var topic by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
+
+    Box{
+
+
+//    Column {
+        TextField(
+            value = topic,
+            onValueChange = {
+                topic = it
+                onTopicChanged(it)
+                expanded = true
+            },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = {
+                Text(
+                    text = stringResource(R.string.new_entry_add_topic),
+                    fontFamily = interFontFamily,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 14.sp,
+                    color = colorResource(R.color.light_grey)
+                )
+            },
+            colors = TextFieldDefaults.colors().copy(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
+            )
+        )
+
+        val topicWithQuotes = "'$topic'" //todo find better way
+        val text = String.format(
+            LocalContext.current.getString(R.string.new_entry_create_topic),
+            topicWithQuotes
+        )
+
+
+//    }
+
+
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = {
+//            expanded = false
+        },
+        properties = PopupProperties(focusable = false),
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth()
+            .requiredSizeIn(maxHeight = 180.dp) // todo - create my own Dropdown menu as this not good
+            .background(
+                color = Color.White, // Or your desired background color
+                shape = RoundedCornerShape(8.dp)
+            ),
+        containerColor = Color.Transparent,
+        shadowElevation = 0.dp
+    ) {
+        topics.forEach { topic ->
+            DropdownMenuItem(
+                onClick = {
+
+//                    selectedOptionText = mood
+//                    expanded = true
+                },
+                text = {
+                    Text(
+                        text = topic.topic,
+                        fontWeight = FontWeight.Medium,
+                        fontFamily = interFontFamily,
+                        fontSize = 14.sp,
+                        color = colorResource(R.color.denim_blue)
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(R.drawable.topic_icon),
+                        tint = Color.Unspecified,
+                        contentDescription = null
+                    )
+                }
+            )
+        }
+
+        DropdownMenuItem(
+            onClick = {
+                expanded = false
+                onCreateTopic(topic)
+            },
+            text = {
+                Text(
+                    text = text,
+                    fontWeight = FontWeight.Medium,
+                    fontFamily = interFontFamily,
+                    fontSize = 14.sp,
+                    color = colorResource(R.color.blue)
+                )
+            },
+            leadingIcon = {
+                Icon(
+                    painter = painterResource(R.drawable.create_topic),
+                    tint = Color.Unspecified,
+                    contentDescription = null
+                )
+            }
+        )
+
+    }
+    }
+}
+
+
+@Composable
+private fun CustomDropDownMenu(){
+//    if(expanded) {
+//        Box(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(8.dp))) {
+//            LazyColumn {
+//                items(topics) { topic ->
+//                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(8.dp)) {
+//                        Icon(
+//                            painter = painterResource(R.drawable.topic_icon),
+//                            contentDescription = null,
+//                            tint = Color.Unspecified)
+//                        Spacer(Modifier.size(6.dp))
+//                        Text(
+//                            text = topic.topic,
+//                            fontWeight = FontWeight.Medium,
+//                            fontFamily = interFontFamily,
+//                            fontSize = 14.sp,
+//                            color = colorResource(R.color.denim_blue)
+//                        )
+//                    }
+//
+//                }
+//            }
+//        }
+//    }
+
 }
 
 @Composable
@@ -536,6 +723,7 @@ fun Preview() {
             playbackState = PlaybackState.PLAYING,
             currentPosition = 0L,
             recording =  null,
+            topics = listOf(),
             onEntryTitleUpdated = {},
             onDescriptionUpdated = {},
             onMoodSelected = { },
@@ -543,7 +731,9 @@ fun Preview() {
             onSaveEntry = {},
             onPlayClicked = {},
             onPauseClicked = {},
-            onResumeClicked = {}
+            onResumeClicked = {},
+            onTopicChanged = {}, 
+            onCreateTopic = {}
         )
     }
 }

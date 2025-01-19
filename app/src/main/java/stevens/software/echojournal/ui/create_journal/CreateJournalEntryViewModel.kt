@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -15,11 +16,14 @@ import stevens.software.echojournal.R
 import stevens.software.echojournal.Recording
 import stevens.software.echojournal.VoiceRecorder
 import stevens.software.echojournal.data.JournalEntry
+import stevens.software.echojournal.data.Topic
 import stevens.software.echojournal.data.repositories.JournalEntriesRepository
+import stevens.software.echojournal.data.repositories.TopicsRepository
 import java.time.OffsetDateTime
 
 class CreateJournalEntryViewModel(
     val journalEntriesRepository: JournalEntriesRepository,
+    val topicsRepository: TopicsRepository,
     val voiceRecorder: VoiceRecorder,
     val mediaPlayer: MediaPlayer
 ): ViewModel() {
@@ -31,6 +35,8 @@ class CreateJournalEntryViewModel(
     val isSaveButtonEnabled = MutableStateFlow<Boolean>(false)
     val recordingDuration = MutableStateFlow<Float>(0f)
     val recording = MutableStateFlow<Recording?>(null)
+    val allTopics = MutableStateFlow<MutableList<Topic>>(mutableListOf())
+
 
     val uiState = combine(
         entryTitle,
@@ -40,8 +46,9 @@ class CreateJournalEntryViewModel(
         isSaveButtonEnabled,
         mediaPlayer.playingState,
         mediaPlayer.playingTrack,
+        topicsRepository.getAllTopics(),
         recording)
-    { entryTitle, entryDescription, moods, selectedMood, saveButtonEnabled, playingState, playingTrack, recording ->
+    { entryTitle, entryDescription, moods, selectedMood, saveButtonEnabled, playingState, playingTrack, topics, recording ->
         CreateEntryUiState(
             entryTitle = entryTitle,
             entryDescription = entryDescription,
@@ -54,11 +61,13 @@ class CreateJournalEntryViewModel(
             recordingName = voiceRecorder.fileName,
 //            trackDuration = recordingDuration,
             recording = recording,
-            currentPosition = playingTrack?.currentPosition ?: 0L
+            currentPosition = playingTrack?.currentPosition ?: 0L,
+            topics = topics.map { it.toEntryTopic() }
         )
     }.onStart {
        val recording1 = voiceRecorder.getRecording(voiceRecorder.fileName)
         recording.emit(recording1)
+
     }.stateIn(
         viewModelScope,
         SharingStarted.Lazily,
@@ -74,8 +83,13 @@ class CreateJournalEntryViewModel(
 //            trackDuration = 10f,
             recording = null,
             recordingName = "",
-            currentPosition = 0L
+            currentPosition = 0L,
+            topics = listOf()
         )
+    )
+
+    fun Topic.toEntryTopic() = EntryTopic(
+        topic = this.topic
     )
 
     fun updateEntryTitle(newEntryTitle: String){
@@ -107,6 +121,14 @@ class CreateJournalEntryViewModel(
     fun saveEntry() {
         viewModelScope.launch{
             journalEntriesRepository.addJournalEntry(uiState.value.toJournalEntry()) //todo error handling
+
+
+        }
+    }
+
+    fun saveTopic(topic: String){
+        viewModelScope.launch{
+            topicsRepository.addTopic(Topic(topic = topic)) //todo error handling
         }
     }
 
@@ -167,7 +189,7 @@ class CreateJournalEntryViewModel(
             ),
         )
 
-    fun <T1, T2, T3, T4, T5, T6, T7, T8, R> combine(
+    fun <T1, T2, T3, T4, T5, T6, T7, T8, T9, R> combine(
         flow: Flow<T1>,
         flow2: Flow<T2>,
         flow3: Flow<T3>,
@@ -176,12 +198,13 @@ class CreateJournalEntryViewModel(
         flow6: Flow<T6>,
         flow7: Flow<T7>,
         flow8: Flow<T8>,
-        transform: suspend (T1, T2, T3, T4, T5, T6, T7, T8) -> R
+        flow9: Flow<T9>,
+        transform: suspend (T1, T2, T3, T4, T5, T6, T7, T8, T9) -> R
     ): Flow<R> = combine(
         combine(flow, flow2, flow3, ::Triple),
         combine(flow4, flow5, flow6, ::Triple),
-        flow7, flow8
-    ) { t1, t2, t3, t4 ->
+        combine(flow7, flow8, flow9, ::Triple),
+    ) { t1, t2, t3,  ->
         transform(
             t1.first,
             t1.second,
@@ -189,8 +212,9 @@ class CreateJournalEntryViewModel(
             t2.first,
             t2.second,
             t2.third,
-            t3,
-            t4
+            t3.first,
+            t3.second,
+            t3.third
         )
     }
 
@@ -209,7 +233,8 @@ data class CreateEntryUiState(
     val recording: Recording?,
     val progressPosition: Float,
     val recordingName: String,
-    val currentPosition: Long
+    val currentPosition: Long,
+    val topics: List<EntryTopic>
 //    val trackDuration: Float
 )
 
@@ -222,3 +247,5 @@ enum class Mood {
     STRESSED,
     NONE
 }
+
+data class EntryTopic(val topic: String)
