@@ -1,14 +1,11 @@
 package stevens.software.echojournal.ui.create_journal
 
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -53,10 +50,11 @@ class CreateJournalEntryViewModel(
             saveButtonEnabled = saveButtonEnabled,
             file = voiceRecorder.filePath,
             playbackState = playingState,
-            position = playingTrack?.position?.toFloat() ?: 0.0f ,
+            progressPosition = playingTrack?.progressPosition?.toFloat() ?: 0.0f ,
             recordingName = voiceRecorder.fileName,
 //            trackDuration = recordingDuration,
-            recording = recording
+            recording = recording,
+            currentPosition = playingTrack?.currentPosition ?: 0L
         )
     }.onStart {
        val recording1 = voiceRecorder.getRecording(voiceRecorder.fileName)
@@ -72,10 +70,11 @@ class CreateJournalEntryViewModel(
             saveButtonEnabled = false,
             file = "",
             playbackState = PlaybackState.STOPPED,
-            position = 0f,
+            progressPosition = 0f,
 //            trackDuration = 10f,
             recording = null,
-            recordingName = ""
+            recordingName = "",
+            currentPosition = 0L
         )
     )
 
@@ -208,8 +207,9 @@ data class CreateEntryUiState(
     val saveButtonEnabled: Boolean,
     val playbackState: PlaybackState,
     val recording: Recording?,
-    val position: Float,
-    val recordingName: String
+    val progressPosition: Float,
+    val recordingName: String,
+    val currentPosition: Long
 //    val trackDuration: Float
 )
 

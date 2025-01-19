@@ -1,16 +1,11 @@
 package stevens.software.echojournal
 
 import android.annotation.SuppressLint
-import android.content.ContentUris
 import android.content.Context
-import android.database.Cursor
 import android.media.AudioAttributes
 import android.media.MediaPlayer
+import android.media.MediaTimestamp
 import android.net.Uri
-import android.provider.MediaStore
-import android.util.Log
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -19,34 +14,17 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import stevens.software.echojournal.ui.journal_entries.PlayingTrack
+import kotlin.math.roundToInt
 
 class MediaPlayer(
     val context: Context,
-) {
+)  {
     private var player: MediaPlayer? = null
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
     val playingState = MutableStateFlow(PlaybackState.STOPPED)
-    val playingTrack: MutableStateFlow<PlayingTrack?> = MutableStateFlow(null) //todo can i update to a flow so i dont have to set an initial value
-    val position = MutableStateFlow(0f)
+    val playingTrack: MutableStateFlow<PlayingTrack?> = MutableStateFlow(null) //todo can i update to a flow so i dont have to set an initial value?
 
-    val trackMetadata = MutableStateFlow(null)
-
-//    fun getRecording(uri: Uri?){
-//
-//        val collection = MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
-//        val projection = arrayOf(
-//            MediaStore.Video.Media._ID,
-//            MediaStore.Video.Media.DISPLAY_NAME,
-//            MediaStore.Video.Media.DURATION,
-//            MediaStore.Video.Media.SIZE
-//        )
-//        val selection = "${MediaStore.Video.Media.DISPLAY_NAME} >= ?"
-//        val selectionArgs = arrayOf(
-//            TimeUnit.MILLISECONDS.convert(5, TimeUnit.MINUTES).toString()
-//        )
-//
-//    }
 
     @SuppressLint("NewApi")
     fun playFile(recordingUri: Uri?, fileName: String = ""){
@@ -63,32 +41,47 @@ class MediaPlayer(
         player?.prepare()
         player?.start()
 
+        player?.setOnMediaTimeDiscontinuityListener(object : MediaPlayer.OnMediaTimeDiscontinuityListener { //todo make this class implement Player
+            override fun onMediaTimeDiscontinuity(
+                mp: MediaPlayer,
+                mts: MediaTimestamp
+            ) {
+                if(!(mp.isPlaying)) {
+                    playingTrack.update { previousState ->
+                        previousState?.copy(
+                            playbackState = PlaybackState.PAUSED
+                        )
+                    }
+                }
+            }
+        })
+
         if(player?.isPlaying == true) {
             coroutineScope.launch{
-                playingTrack.emit(PlayingTrack(file = fileName, playbackState = PlaybackState.PLAYING, position = 0f))
+                playingTrack.emit(PlayingTrack(file = fileName, playbackState = PlaybackState.PLAYING, progressPosition = 0f, currentPosition = player?.currentPosition?.toLong() ?: 0L))
                 playingState.emit(PlaybackState.PLAYING)
                 seekbarUpdateObserver()
             }
         }
     }
 
+
     private suspend fun seekbarUpdateObserver() {
         withContext(Dispatchers.IO) {
             while (true) {
                 if (player != null && player!!.isPlaying) {
-                   val i =  player?.duration
                     val pos = player!!.currentPosition
                     val progress = (pos.toFloat() / player!!.duration) * 100f
 
-                    println("progress " + progress)
                     playingTrack.update {
                         it?.copy(
-                            position = progress
+                            progressPosition = progress,
+                            currentPosition = pos.toLong()
                         )
                     }
                 }
 
-                delay(1000L)
+                delay(100L) //Because i am testing on seconds long tracks, having 1000L is to noticeable
             }
         }
     }

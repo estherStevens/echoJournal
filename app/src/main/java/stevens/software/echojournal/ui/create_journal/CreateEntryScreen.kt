@@ -1,8 +1,6 @@
 package stevens.software.echojournal.ui.create_journal
 
-import android.net.Uri
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -15,8 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -25,8 +21,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -39,7 +33,6 @@ import androidx.compose.runtime.getValue
 
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
@@ -70,7 +63,9 @@ fun CreateEntryScreen(
         onNavigateBack = onNavigateBack,
         selectedMood = uiState.value.selectedMood,
         playbackState = uiState.value.playbackState,
-        position = uiState.value.position,
+        position = uiState.value.progressPosition,
+        recording = uiState.value.recording,
+        currentPosition = uiState.value.currentPosition,
         saveButtonEnabled = uiState.value.saveButtonEnabled,
         onEntryTitleUpdated = {
             viewModel.updateEntryTitle(it)
@@ -105,6 +100,8 @@ fun CreateEntry(
     selectedMood: SelectableMood?,
     playbackState: PlaybackState,
     position: Float,
+    recording: Recording?,
+    currentPosition: Long,
     onEntryTitleUpdated: (String) -> Unit,
     onDescriptionUpdated: (String) -> Unit,
     onMoodSelected: (SelectableMood?) -> Unit,
@@ -193,6 +190,8 @@ fun CreateEntry(
                 RecordingTrack(
                     selectedMood = selectedMood?.id,
                     position = position,
+                    currentPosition = currentPosition,
+                    trackDuration = recording?.duration?.toLong() ?: 0L, //todo can prob get the duration from the media player rather than MediaStore
                     playbackState = playbackState,
                     onPlayClicked = onPlayClicked,
                     onPauseClicked = onPauseClicked,
@@ -234,31 +233,6 @@ fun CreateEntry(
                     showBottomSheet = false
                 })
         }
-    }
-}
-
-
-
-
-@Composable
-fun TrackControlButton(icon: Int, color: Color, onClick: () -> Unit){
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .clip(CircleShape)
-            .background(Color.White)
-            .size(32.dp)
-            .padding(4.dp)
-
-    ) {
-        Icon(
-            painter = painterResource(icon),
-            contentDescription = null,
-            tint = color,
-            modifier = Modifier.clickable {
-                onClick()
-            }
-        )
     }
 }
 
@@ -560,6 +534,8 @@ fun Preview() {
             saveButtonEnabled = false,
             selectedMood = SelectableMood(Mood.EXCITED, 0, 0, 0),
             playbackState = PlaybackState.PLAYING,
+            currentPosition = 0L,
+            recording =  null,
             onEntryTitleUpdated = {},
             onDescriptionUpdated = {},
             onMoodSelected = { },

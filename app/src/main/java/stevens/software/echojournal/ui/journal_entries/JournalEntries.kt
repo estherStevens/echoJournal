@@ -52,7 +52,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
-import stevens.software.echojournal.PlaybackState
 import stevens.software.echojournal.R
 import stevens.software.echojournal.interFontFamily
 import stevens.software.echojournal.ui.common.RecordingTrack
@@ -193,7 +192,9 @@ fun JournalEntries(
 
                                                 RecordingTrack(
                                                     selectedMood = entry.mood.id,
-                                                    position = entry.position,
+                                                    position = entry.progressPosition,
+                                                    currentPosition = entry.currentPosition,
+                                                    trackDuration = entry.recording?.duration ?: 0L ,
                                                     playbackState = entry.playingState,
                                                     onPlayClicked = {
                                                         onPlayClicked(entry)

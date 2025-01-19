@@ -74,11 +74,12 @@ class JournalEntriesViewModel(
     fun JournalEntry.toEntry(playbackState: PlayingTrack?) : Entry {
         var recording = voiceRecorder.getRecording(this.recordingFilePath)
         var playingState = PlaybackState.STOPPED
-        var position = 0f
+        var progressPosition = 0f
+        var currentPosition = 0L
         if(playbackState?.file == this.recordingFilePath) {
             playingState = playbackState.playbackState
-            position = playbackState.position
-
+            progressPosition = playbackState.progressPosition
+            currentPosition = playbackState.currentPosition
         }
         return Entry(
             title = this.title,
@@ -89,7 +90,8 @@ class JournalEntriesViewModel(
             mood = moodsRepository.toEntryMood(this.mood),
             recording = recording,
             playingState = playingState,
-            position = position
+            progressPosition = progressPosition,
+            currentPosition = currentPosition
         )
     }
 
@@ -131,20 +133,6 @@ class JournalEntriesViewModel(
             }
         }
     }
-
-
-    /* fun getMyRecordingEntries() : Flow<List<Entry>>{
-         val path = context.getExternalFilesDir(Environment.DIRECTORY_RECORDINGS)
-         val files = path?.walkTopDown()?.toList()?.filter {
-             it.isFile
-         } ?: emptyList()
-         val entries = mutableListOf<Entry>()
-         for(file in files) {
-             entries.add(Entry(file.nameWithoutExtension))
-         }
-         return flowOf(entries)
-     }*/
-
 }
 
 data class JournalEntriesUiState(
@@ -162,8 +150,9 @@ data class Entry(
     val entryDate: LocalDate,
     val recording: Recording?,
     val playingState: PlaybackState,
-    val position: Float
+    val progressPosition: Float,
+    val currentPosition: Long
 )
 data class EntryMood(val id: Mood, val text: Int, val moodIcon: Int)
 data class EntryDateCategory(val date: String, val entries : List<Entry>)
-data class PlayingTrack(val file: String, val playbackState: PlaybackState, val position: Float)
+data class PlayingTrack(val file: String, val playbackState: PlaybackState, val progressPosition: Float, val currentPosition: Long)
