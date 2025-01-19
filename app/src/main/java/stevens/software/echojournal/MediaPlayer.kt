@@ -65,7 +65,7 @@ class MediaPlayer(
 
         if(player?.isPlaying == true) {
             coroutineScope.launch{
-                playingTrack.emit(PlayingTrack(file = fileName, playbackState = PlaybackState.PLAYING))
+                playingTrack.emit(PlayingTrack(file = fileName, playbackState = PlaybackState.PLAYING, position = 0f))
                 playingState.emit(PlaybackState.PLAYING)
                 seekbarUpdateObserver()
             }
@@ -76,9 +76,16 @@ class MediaPlayer(
         withContext(Dispatchers.IO) {
             while (true) {
                 if (player != null && player!!.isPlaying) {
+                   val i =  player?.duration
                     val pos = player!!.currentPosition
                     val progress = (pos.toFloat() / player!!.duration) * 100f
-                    position.emit(progress)
+
+                    println("progress " + progress)
+                    playingTrack.update {
+                        it?.copy(
+                            position = progress
+                        )
+                    }
                 }
 
                 delay(1000L)

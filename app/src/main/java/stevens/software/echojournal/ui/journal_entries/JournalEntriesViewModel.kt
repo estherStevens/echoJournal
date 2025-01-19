@@ -36,7 +36,7 @@ class JournalEntriesViewModel(
     val uiState = combine(
         journalEntriesRepository.getAllJournalEntries(),
         isLoading,
-        mediaPlayer.playingTrack
+        mediaPlayer.playingTrack,
     ) { entries, isLoading, playingState ->
         JournalEntriesUiState(
             moods = moodsRepository.getFilterMoods(),
@@ -74,8 +74,11 @@ class JournalEntriesViewModel(
     fun JournalEntry.toEntry(playbackState: PlayingTrack?) : Entry {
         var recording = voiceRecorder.getRecording(this.recordingFilePath)
         var playingState = PlaybackState.STOPPED
+        var position = 0f
         if(playbackState?.file == this.recordingFilePath) {
             playingState = playbackState.playbackState
+            position = playbackState.position
+
         }
         return Entry(
             title = this.title,
@@ -85,7 +88,8 @@ class JournalEntriesViewModel(
             entryDate = this.timeOfEntry.toLocalDate(),
             mood = moodsRepository.toEntryMood(this.mood),
             recording = recording,
-            playingState = playingState
+            playingState = playingState,
+            position = position
         )
     }
 
@@ -157,8 +161,9 @@ data class Entry(
     val entryTime: String,
     val entryDate: LocalDate,
     val recording: Recording?,
-    val playingState: PlaybackState
+    val playingState: PlaybackState,
+    val position: Float
 )
 data class EntryMood(val id: Mood, val text: Int, val moodIcon: Int)
 data class EntryDateCategory(val date: String, val entries : List<Entry>)
-data class PlayingTrack(val file: String, val playbackState: PlaybackState)
+data class PlayingTrack(val file: String, val playbackState: PlaybackState, val position: Float)

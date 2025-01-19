@@ -193,8 +193,7 @@ fun JournalEntries(
 
                                                 RecordingTrack(
                                                     selectedMood = entry.mood.id,
-                                                    position = 0F,
-                                                    trackDuration = 0F,
+                                                    position = entry.position,
                                                     playbackState = entry.playingState,
                                                     onPlayClicked = {
                                                         onPlayClicked(entry)

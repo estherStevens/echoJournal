@@ -193,7 +193,6 @@ fun CreateEntry(
                 RecordingTrack(
                     selectedMood = selectedMood?.id,
                     position = position,
-                    trackDuration =  0f,
                     playbackState = playbackState,
                     onPlayClicked = onPlayClicked,
                     onPauseClicked = onPauseClicked,

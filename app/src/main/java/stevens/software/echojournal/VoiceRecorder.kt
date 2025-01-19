@@ -104,7 +104,9 @@ class VoiceRecorder(private val context: Context) {
                 val displayName = cursor.getString(displayName)
 
                 val contentUri: Uri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id)
-                recording = Recording(contentUri, displayName, duration)
+                val i = (0.toFloat() / duration.toFloat())
+                println("hey " + i)
+                recording = Recording(contentUri, displayName, duration.toFloat())
             }
         }
         return recording
@@ -114,4 +116,4 @@ class VoiceRecorder(private val context: Context) {
 
 }
 
-data class Recording(val contentUri: Uri, val name: String, val duration: Int)
+data class Recording(val contentUri: Uri, val name: String, val duration: Float)

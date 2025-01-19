@@ -43,4 +43,13 @@
     <color name="neutral_mood_track_background">#EEF7F3</color>
 
 
+    <color name="sad_mood_seekbar_inactive">#C5D8E9</color>
+    <color name="excited_mood_seekbar_inactive">#DDD2C8</color>
+    <color name="stressed_mood_seekbar_inactive">#E9C5C5</color>
+    <color name="peaceful_mood_seekbar_inactive">#E1CEDB</color>
+    <color name="neutral_mood_seekbar_inactive">#B9DDCB</color>
+    <color name="seekbar_inactive">#BAC6E9</color>
+
+
+
 </resources>

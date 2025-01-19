@@ -42,9 +42,9 @@ class CreateJournalEntryViewModel(
         selectedMood,
         isSaveButtonEnabled,
         mediaPlayer.playingState,
-        mediaPlayer.position,
+        mediaPlayer.playingTrack,
         recording)
-    { entryTitle, entryDescription, moods, selectedMood, saveButtonEnabled, playingState, position, recording ->
+    { entryTitle, entryDescription, moods, selectedMood, saveButtonEnabled, playingState, playingTrack, recording ->
         CreateEntryUiState(
             entryTitle = entryTitle,
             entryDescription = entryDescription,
@@ -53,7 +53,7 @@ class CreateJournalEntryViewModel(
             saveButtonEnabled = saveButtonEnabled,
             file = voiceRecorder.filePath,
             playbackState = playingState,
-            position = position,
+            position = playingTrack?.position?.toFloat() ?: 0.0f ,
             recordingName = voiceRecorder.fileName,
 //            trackDuration = recordingDuration,
             recording = recording
@@ -133,7 +133,6 @@ class CreateJournalEntryViewModel(
             timeOfEntry = OffsetDateTime.now(),
             mood = this.selectedMood?.id ?: Mood.NONE // todo - need to find solution for the null selected mood on start
         )
-
 
 
     private fun initialSetOfSelectableMoods() = listOf(
