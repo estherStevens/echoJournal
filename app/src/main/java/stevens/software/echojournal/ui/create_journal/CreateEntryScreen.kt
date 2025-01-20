@@ -430,7 +430,9 @@ private fun EntryTopic(
             .background(
                 color = Color.White,
                 shape = RoundedCornerShape(8.dp)
-            )
+            ),
+        containerColor = Color.Transparent,
+        shadowElevation = 0.dp
     ) {
         filteredTopics.forEach { filteredTopic ->
             DropdownMenuItem(

@@ -35,11 +35,10 @@ class JournalEntriesViewModel(
     private val isLoading = MutableStateFlow<Boolean>(true)
 
     val uiState = combine(
-        journalEntriesRepository.getAllJournalEntries(),
         journalEntriesRepository.getAllEntriesWithTopics(),
         isLoading,
         mediaPlayer.playingTrack,
-    ) { entries, entriesWithTopics, isLoading, playingState ->
+    ) { entriesWithTopics, isLoading, playingState ->
         JournalEntriesUiState(
             moods = moodsRepository.getFilterMoods(),
             entries = groupEntriesByDate(
@@ -57,14 +56,16 @@ class JournalEntriesViewModel(
 
 
     fun groupEntriesByDate(entries: List<Entry>) : List<EntryDateCategory>{
-        return entries.sortedByDescending { it.entryDate }.groupBy {
-            it.entryDate
-        }.map {
+        return entries
+            .sortedByDescending { it.entryDate }
+            .sortedByDescending { it.entryTime }
+            .groupBy { it.entryDate }.map {
             EntryDateCategory(
                 date = getDate(it.key),
                 entries = it.value
             )
         }
+
 
     }
 
