@@ -7,16 +7,18 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSizeIn
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -25,6 +27,8 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.InputChip
+import androidx.compose.material3.InputChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -37,17 +41,23 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.setValue
 
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -57,11 +67,8 @@ import org.koin.androidx.compose.koinViewModel
 import stevens.software.echojournal.PlaybackState
 import stevens.software.echojournal.R
 import stevens.software.echojournal.Recording
-import stevens.software.echojournal.data.Topic
 import stevens.software.echojournal.interFontFamily
 import stevens.software.echojournal.ui.common.RecordingTrack
-import stevens.software.echojournal.ui.journal_entries.EntryMood
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateEntryScreen(
@@ -78,6 +85,7 @@ fun CreateEntryScreen(
         position = uiState.value.progressPosition,
         recording = uiState.value.recording,
         topics = uiState.value.topics,
+        myTopics = uiState.value.entryTopics,
         currentPosition = uiState.value.currentPosition,
         saveButtonEnabled = uiState.value.saveButtonEnabled,
         onEntryTitleUpdated = {
@@ -101,11 +109,14 @@ fun CreateEntryScreen(
         onResumeClicked = {
             viewModel.resumeRecording()
         },
-        onTopicChanged = {
-
+        onTopicChosen = {
+            viewModel.updateEntryTopic(it)
         },
         onCreateTopic = {
             viewModel.saveTopic(it)
+        },
+        onRemoveTopic = {
+            viewModel.removeEntryTopic(it)
         }
     )
 }
@@ -122,6 +133,7 @@ fun CreateEntry(
     topics: List<EntryTopic>,
     recording: Recording?,
     currentPosition: Long,
+    myTopics: Set<EntryTopic>,
     onEntryTitleUpdated: (String) -> Unit,
     onDescriptionUpdated: (String) -> Unit,
     onMoodSelected: (SelectableMood?) -> Unit,
@@ -129,8 +141,9 @@ fun CreateEntry(
     onPlayClicked: () -> Unit,
     onPauseClicked: () -> Unit,
     onResumeClicked: () -> Unit,
-    onTopicChanged: () -> Unit,
-    onCreateTopic:(String) -> Unit
+    onTopicChosen: (EntryTopic) -> Unit,
+    onCreateTopic:(String) -> Unit,
+    onRemoveTopic: (EntryTopic) -> Unit
 ) {
     var showBottomSheet by remember { mutableStateOf(false) }
 
@@ -225,15 +238,14 @@ fun CreateEntry(
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        painter = painterResource(R.drawable.topic_icon),
-                        contentDescription = null,
-                        tint = Color.Unspecified
-                    )
+                    val chosenTopics by remember { mutableStateOf(myTopics) }
+
                     EntryTopic (
                         topics = topics,
+                        myTopics = chosenTopics,
                         onCreateTopic = onCreateTopic,
-                        onTopicChanged = {}
+                        onTopicChosen = onTopicChosen,
+                        onRemoveTopic = onRemoveTopic
                     )
                 }
 
@@ -310,81 +322,129 @@ private fun EntryTitle(onEntryTitleUpdated: (String) -> Unit) {
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun EntryTopic(
     topics: List<EntryTopic>,
-    onTopicChanged: (String) -> Unit,
+    myTopics: Set<EntryTopic>,
+    onTopicChosen: (EntryTopic) -> Unit,
+    onRemoveTopic: (EntryTopic) -> Unit,
     onCreateTopic: (String) -> Unit
 ) {
     var topic by remember { mutableStateOf("") }
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(true) }
+    val entryTopics = remember { mutableStateListOf<EntryTopic>()}
+    val filteredTopics = topics.filter { it.topic.startsWith(topic) }
 
-    Box{
-
-
-//    Column {
-        TextField(
-            value = topic,
-            onValueChange = {
-                topic = it
-                onTopicChanged(it)
-                expanded = true
-            },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = {
-                Text(
-                    text = stringResource(R.string.new_entry_add_topic),
-                    fontFamily = interFontFamily,
-                    fontWeight = FontWeight.Normal,
-                    fontSize = 14.sp,
-                    color = colorResource(R.color.light_grey)
-                )
-            },
-            colors = TextFieldDefaults.colors().copy(
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
+    val topicWithQuotes = "'$topic'" //todo find better way
+    val text = String.format(LocalContext.current.getString(R.string.new_entry_create_topic), topicWithQuotes)
+        FlowRow(modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Icon(
+                painter = painterResource(R.drawable.topic_icon),
+                contentDescription = null,
+                tint = Color.Unspecified,
+                modifier = Modifier.align(Alignment.CenterVertically)
             )
-        )
+            entryTopics.forEach{ topic ->
+                InputChip(
+                    modifier = Modifier.align(Alignment.CenterVertically),
+                    selected = true,
+                    onClick = {},
+                    label = {
+                        Text(
+                            text = topic.topic,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            fontFamily = interFontFamily,
+                            color = colorResource(R.color.dark_grey),
+                        )
+                    },
+                    shape = CircleShape,
+                    colors = InputChipDefaults.inputChipColors().copy(
+                        selectedContainerColor = colorResource(R.color.pale_grey)
+                    ),
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(R.drawable.topic_icon),
+                            contentDescription = null,
+                            tint = Color.Unspecified
+                        )
+                    },
+                    trailingIcon = {
+                        Icon(
+                            painter = painterResource(R.drawable.close_icon),
+                            contentDescription = null,
+                            tint = Color.Unspecified,
+                            modifier = Modifier.clickable{
+                                if(entryTopics.contains(topic)) {
+                                    entryTopics.remove(topic)
+                                }
+                                onRemoveTopic(topic)
+                            }
+                        )
+                    }
+                )
+            }
 
-        val topicWithQuotes = "'$topic'" //todo find better way
-        val text = String.format(
-            LocalContext.current.getString(R.string.new_entry_create_topic),
-            topicWithQuotes
-        )
+            TextField(
+                value = topic,
+                onValueChange = {
+                    topic = it
+                    expanded = it.isNotEmpty()
+                },
+                modifier = Modifier.defaultMinSize(minWidth = 10.dp),
+                singleLine = true,
+                placeholder = {
+                    Text(
+                        text = stringResource(R.string.new_entry_add_topic),
+                        fontFamily = interFontFamily,
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 14.sp,
+                        color = colorResource(R.color.light_grey)
+                    )
+                },
+                colors = TextFieldDefaults.colors().copy(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                )
 
 
-//    }
+            )
+        }
 
 
     DropdownMenu(
         expanded = expanded,
-        onDismissRequest = {
-//            expanded = false
-        },
-        properties = PopupProperties(focusable = false),
+        onDismissRequest = { expanded = false },
+        properties = PopupProperties(
+            focusable = false,
+            dismissOnClickOutside = false
+        ),
         modifier = Modifier
             .padding(horizontal = 16.dp)
             .fillMaxWidth()
             .requiredSizeIn(maxHeight = 180.dp) // todo - create my own Dropdown menu as this not good
             .background(
-                color = Color.White, // Or your desired background color
+                color = Color.White,
                 shape = RoundedCornerShape(8.dp)
-            ),
-        containerColor = Color.Transparent,
-        shadowElevation = 0.dp
+            )
     ) {
-        topics.forEach { topic ->
+        filteredTopics.forEach { filteredTopic ->
             DropdownMenuItem(
                 onClick = {
-
-//                    selectedOptionText = mood
-//                    expanded = true
+                    expanded = false
+                    topic = ""
+                    if(!(entryTopics.contains(filteredTopic))) {
+                        entryTopics.add(filteredTopic)
+                    }
+                    onTopicChosen(filteredTopic)
                 },
                 text = {
                     Text(
-                        text = topic.topic,
+                        text = filteredTopic.topic,
                         fontWeight = FontWeight.Medium,
                         fontFamily = interFontFamily,
                         fontSize = 14.sp,
@@ -404,7 +464,10 @@ private fun EntryTopic(
         DropdownMenuItem(
             onClick = {
                 expanded = false
+                entryTopics.add(EntryTopic(topic))
                 onCreateTopic(topic)
+//                onTopicChosen(EntryTopic(topic))
+                topic = ""
             },
             text = {
                 Text(
@@ -424,7 +487,6 @@ private fun EntryTopic(
             }
         )
 
-    }
     }
 }
 
@@ -711,29 +773,43 @@ fun MoodButton(
 
 }
 
-@Preview
+@Preview(showSystemUi = true)
 @Composable
 fun Preview() {
     MaterialTheme {
-        CreateEntry(
-            moods = listOf(),
-            onNavigateBack = {},
-            saveButtonEnabled = false,
-            selectedMood = SelectableMood(Mood.EXCITED, 0, 0, 0),
-            playbackState = PlaybackState.PLAYING,
-            currentPosition = 0L,
-            recording =  null,
-            topics = listOf(),
-            onEntryTitleUpdated = {},
-            onDescriptionUpdated = {},
-            onMoodSelected = { },
-            position = 0f,
-            onSaveEntry = {},
-            onPlayClicked = {},
-            onPauseClicked = {},
-            onResumeClicked = {},
-            onTopicChanged = {}, 
-            onCreateTopic = {}
-        )
+        Column {
+            Spacer(Modifier.size(40.dp))
+            val i = EntryTopic(topic = "hey")
+            EntryTopic(
+                topics = listOf<EntryTopic>(),
+                myTopics = setOf(EntryTopic(topic = "hey"), EntryTopic(topic = "yoo"), EntryTopic(topic = "topic")),
+                {},
+                {},
+                {}
+            )
+        }
+
+//        CreateEntry(
+//            moods = listOf(),
+//            onNavigateBack = {},
+//            saveButtonEnabled = false,
+//            selectedMood = SelectableMood(Mood.EXCITED, 0, 0, 0),
+//            playbackState = PlaybackState.PLAYING,
+//            currentPosition = 0L,
+//            recording =  null,
+//            topics = listOf(),
+//            myTopics = setOf(),
+//            onEntryTitleUpdated = {},
+//            onDescriptionUpdated = {},
+//            onMoodSelected = { },
+//            position = 0f,
+//            onSaveEntry = {},
+//            onPlayClicked = {},
+//            onPauseClicked = {},
+//            onResumeClicked = {},
+//            onTopicChosen = {},
+//            onCreateTopic = {},
+//            onRemoveTopic = {}
+//        )
     }
 }
