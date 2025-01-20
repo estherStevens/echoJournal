@@ -13,9 +13,12 @@ import stevens.software.echojournal.MediaPlayer
 import stevens.software.echojournal.PlaybackState
 import stevens.software.echojournal.Recording
 import stevens.software.echojournal.VoiceRecorder
+import stevens.software.echojournal.data.EntryWithTopics
 import stevens.software.echojournal.data.JournalEntry
+import stevens.software.echojournal.data.Topic
 import stevens.software.echojournal.data.repositories.JournalEntriesRepository
 import stevens.software.echojournal.data.repositories.MoodsRepository
+import stevens.software.echojournal.ui.create_journal.EntryTopic
 import stevens.software.echojournal.ui.create_journal.Mood
 import java.time.LocalDate
 import java.time.OffsetDateTime
@@ -33,13 +36,14 @@ class JournalEntriesViewModel(
 
     val uiState = combine(
         journalEntriesRepository.getAllJournalEntries(),
+        journalEntriesRepository.getAllEntriesWithTopics(),
         isLoading,
         mediaPlayer.playingTrack,
-    ) { entries, isLoading, playingState ->
+    ) { entries, entriesWithTopics, isLoading, playingState ->
         JournalEntriesUiState(
             moods = moodsRepository.getFilterMoods(),
             entries = groupEntriesByDate(
-                entries = entries.map { it.toEntry(playingState) },
+                entries = entriesWithTopics.map { it.toEntry(playingState) }
             ),
         )
     }.stateIn(
@@ -68,6 +72,32 @@ class JournalEntriesViewModel(
         voiceRecorder.startRecording()
     }
 
+    fun EntryWithTopics.toEntry(playbackState: PlayingTrack?) : Entry {
+        var recording = voiceRecorder.getRecording(this.entry.recordingFilePath)
+        var playingState = PlaybackState.STOPPED
+        var progressPosition = 0f
+        var currentPosition = 0L
+        if(playbackState?.file == this.entry.recordingFilePath) {
+            playingState = playbackState.playbackState
+            progressPosition = playbackState.progressPosition
+            currentPosition = playbackState.currentPosition
+        }
+
+        return Entry(
+            title = this.entry.title,
+            recordingFileName = this.entry.recordingFilePath,
+            description = this.entry.description,
+            entryTime = getTime(this.entry.timeOfEntry),
+            entryDate = this.entry.timeOfEntry.toLocalDate(),
+            mood = moodsRepository.toEntryMood(this.entry.mood),
+            recording = recording,
+            playingState = playingState,
+            progressPosition = progressPosition,
+            currentPosition = currentPosition,
+            topics = this.topics.map { it.toEntryTopic() }
+        )
+    }
+
 
     fun JournalEntry.toEntry(playbackState: PlayingTrack?) : Entry {
         var recording = voiceRecorder.getRecording(this.recordingFilePath)
@@ -89,7 +119,8 @@ class JournalEntriesViewModel(
             recording = recording,
             playingState = playingState,
             progressPosition = progressPosition,
-            currentPosition = currentPosition
+            currentPosition = currentPosition,
+            topics = listOf<EntryTopic>()
         )
     }
 
@@ -133,6 +164,10 @@ class JournalEntriesViewModel(
     }
 }
 
+fun Topic.toEntryTopic() = EntryTopic(
+    topic = this.topic
+)
+
 data class JournalEntriesUiState(
     val moods: List<EntryMood>,
     val entries: List<EntryDateCategory>
@@ -149,7 +184,8 @@ data class Entry(
     val recording: Recording?,
     val playingState: PlaybackState,
     val progressPosition: Float,
-    val currentPosition: Long
+    val currentPosition: Long,
+    val topics: List<EntryTopic>
 )
 data class EntryMood(val id: Mood, val text: Int, val moodIcon: Int)
 data class EntryDateCategory(val date: String, val entries : List<Entry>)

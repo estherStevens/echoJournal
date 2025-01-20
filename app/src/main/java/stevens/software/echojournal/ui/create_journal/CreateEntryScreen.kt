@@ -777,39 +777,27 @@ fun MoodButton(
 @Composable
 fun Preview() {
     MaterialTheme {
-        Column {
-            Spacer(Modifier.size(40.dp))
-            val i = EntryTopic(topic = "hey")
-            EntryTopic(
-                topics = listOf<EntryTopic>(),
-                myTopics = setOf(EntryTopic(topic = "hey"), EntryTopic(topic = "yoo"), EntryTopic(topic = "topic")),
-                {},
-                {},
-                {}
-            )
-        }
-
-//        CreateEntry(
-//            moods = listOf(),
-//            onNavigateBack = {},
-//            saveButtonEnabled = false,
-//            selectedMood = SelectableMood(Mood.EXCITED, 0, 0, 0),
-//            playbackState = PlaybackState.PLAYING,
-//            currentPosition = 0L,
-//            recording =  null,
-//            topics = listOf(),
-//            myTopics = setOf(),
-//            onEntryTitleUpdated = {},
-//            onDescriptionUpdated = {},
-//            onMoodSelected = { },
-//            position = 0f,
-//            onSaveEntry = {},
-//            onPlayClicked = {},
-//            onPauseClicked = {},
-//            onResumeClicked = {},
-//            onTopicChosen = {},
-//            onCreateTopic = {},
-//            onRemoveTopic = {}
-//        )
+        CreateEntry(
+            moods = listOf(),
+            onNavigateBack = {},
+            saveButtonEnabled = false,
+            selectedMood = SelectableMood(Mood.EXCITED, 0, 0, 0),
+            playbackState = PlaybackState.PLAYING,
+            currentPosition = 0L,
+            recording =  null,
+            topics = listOf(),
+            myTopics = setOf(),
+            onEntryTitleUpdated = {},
+            onDescriptionUpdated = {},
+            onMoodSelected = { },
+            position = 0f,
+            onSaveEntry = {},
+            onPlayClicked = {},
+            onPauseClicked = {},
+            onResumeClicked = {},
+            onTopicChosen = {},
+            onCreateTopic = {},
+            onRemoveTopic = {}
+        )
     }
 }

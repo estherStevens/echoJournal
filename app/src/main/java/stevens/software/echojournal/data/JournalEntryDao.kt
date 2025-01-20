@@ -28,5 +28,9 @@ interface JournalEntryDao {
 
     @Transaction
     @Query("SELECT * FROM entries")
-    fun getEntriesWithTopics(): List<EntryWithTopics>
+    fun getEntriesWithTopics(): Flow<List<EntryWithTopics>>
+
+    @Insert
+    suspend fun insertEntryWithTopics(entry: EntryTopicsCrossRef) : Long
+
 }

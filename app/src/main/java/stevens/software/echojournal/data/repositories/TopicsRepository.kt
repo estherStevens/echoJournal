@@ -9,4 +9,7 @@ interface TopicsRepository {
     suspend fun addTopic(topic: Topic)
 
     fun getAllTopics(): Flow<List<Topic>>
+
+    suspend fun getTopic(topic: String): Topic
+
 }

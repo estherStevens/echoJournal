@@ -2,6 +2,7 @@ package stevens.software.echojournal.data
 
 import androidx.room.Embedded
 import androidx.room.Entity
+import androidx.room.Junction
 import androidx.room.PrimaryKey
 import androidx.room.Relation
 
@@ -22,7 +23,9 @@ data class EntryTopicsCrossRef(
 //    @Embedded val journalEntry: JournalEntry,
 //    @Relation(
 //        parentColumn = "id",
-//        entityColumn = "topicId"
-//    )
-//    val topics: List<Topic>
+//        entityColumn = "topicId",
+//        associateBy = Junction(EntryTopicsCrossRef::class),
+//
+//        )
+//    val topics: List<Topic>,
 //)

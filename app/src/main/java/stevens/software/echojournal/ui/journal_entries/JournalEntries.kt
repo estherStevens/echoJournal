@@ -2,6 +2,7 @@ package stevens.software.echojournal.ui.journal_entries
 
 import android.Manifest
 import android.os.Build
+import android.widget.Space
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
@@ -29,6 +30,9 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.InputChip
+import androidx.compose.material3.InputChipDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -36,7 +40,6 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -49,12 +52,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
+import stevens.software.echojournal.PlaybackState
 import stevens.software.echojournal.R
 import stevens.software.echojournal.interFontFamily
 import stevens.software.echojournal.ui.common.RecordingTrack
+import stevens.software.echojournal.ui.create_journal.EntryTopic
+import stevens.software.echojournal.ui.create_journal.Mood
+import java.time.LocalDate
 
 @RequiresApi(Build.VERSION_CODES.S)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -219,7 +228,17 @@ fun JournalEntries(
                                                     overflow = TextOverflow.Ellipsis,
                                                 )
 
+                                                Spacer(Modifier.size(6.dp))
 
+                                                Row(
+                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                ){
+                                                    entry.topics.forEach{ topic ->
+                                                        TopicPill(
+                                                            topic = topic.topic
+                                                        )
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -543,15 +562,62 @@ fun FloatingActionButton(
     }
 }
 
-//@Composable
-//@Preview(showSystemUi = true)
-//fun Preview() {
-//    MaterialTheme {
-//        JournalEntries(
-//            moods = listOf(),
-//            entries = listOf(EntryDateCategory(date = "Today", entries = listOf())),
-//            {}, {},
-//        )
-//    }
-//}
+@Composable
+fun TopicPill(topic: String){
+    Box(
+        modifier = Modifier.background(color = colorResource(R.color.pale_grey), shape = CircleShape)
+    ) {
+        Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically){
+            Icon(
+                painter = painterResource(R.drawable.topic_icon),
+                contentDescription = null,
+                tint = Color.Unspecified
+            )
+            Text(
+                text = topic,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                fontFamily = interFontFamily,
+                color = colorResource(R.color.dark_grey),
+                modifier = Modifier
+            )
+        }
+    }
+}
+
+
+@Composable
+@Preview(showSystemUi = true)
+fun Preview() {
+    MaterialTheme {
+        JournalEntries(
+            moods = listOf(),
+            entries = listOf(EntryDateCategory(date = "Today", entries = listOf(
+                Entry(
+                    mood = EntryMood(id = Mood.EXCITED, text = R.string.entries_mood_excited, moodIcon = 0),
+                    title = "New Entry",
+                    recordingFileName = "",
+                    description = "",
+                    entryTime = "",
+                    entryDate = LocalDate.now(),
+                    recording = null,
+                    playingState = PlaybackState.STOPPED,
+                    progressPosition = 0f,
+                    currentPosition = 0,
+                    topics = listOf(
+                        EntryTopic(
+                            topic = "New Topic"
+                        )
+                    )
+                )
+            ))),
+            onStartRecording = {},
+            onSaveRecording = {},
+            onPlayClicked = {},
+            onPauseClicked = {},
+            onResumeClicked = {}
+        )
+    }
+}
 

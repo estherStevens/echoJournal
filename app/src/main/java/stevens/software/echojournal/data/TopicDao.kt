@@ -21,4 +21,7 @@ interface TopicDao {
     @Query("Select * from topics")
     fun getAllTopics() : Flow<List<Topic>>
 
+    @Query("Select * from topics where topic = :topic")
+    suspend fun getTopic(topic: String) : Topic
+
 }

@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.forEach
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
@@ -15,6 +16,8 @@ import stevens.software.echojournal.PlaybackState
 import stevens.software.echojournal.R
 import stevens.software.echojournal.Recording
 import stevens.software.echojournal.VoiceRecorder
+import stevens.software.echojournal.data.EntryTopicsCrossRef
+import stevens.software.echojournal.data.EntryWithTopics
 import stevens.software.echojournal.data.JournalEntry
 import stevens.software.echojournal.data.Topic
 import stevens.software.echojournal.data.repositories.JournalEntriesRepository
@@ -124,7 +127,20 @@ class CreateJournalEntryViewModel(
 
     fun saveEntry() {
         viewModelScope.launch{
-            journalEntriesRepository.addJournalEntry(uiState.value.toJournalEntry()) //todo error handling
+            val entryId = journalEntriesRepository.addJournalEntry(uiState.value.toJournalEntry()) //todo error handling
+
+
+
+            entryTopics.value.forEach { topic ->
+                val topic = topicsRepository.getTopic(topic.topic)
+                journalEntriesRepository.insertEntryWithTopics(
+                    EntryTopicsCrossRef(
+                        id =  entryId.toInt(),
+                        topicId = topic.topicId
+                    )
+                )
+            }
+
         }
     }
 

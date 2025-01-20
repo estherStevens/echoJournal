@@ -17,4 +17,8 @@ class TopicsRepositoryImplementation(
     override fun getAllTopics(): Flow<List<Topic>> {
        return topicsDao.getAllTopics()
     }
+
+    override suspend fun getTopic(topic: String): Topic {
+        return topicsDao.getTopic(topic)
+    }
 }
