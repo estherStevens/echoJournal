@@ -5,19 +5,16 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.forEach
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import stevens.software.echojournal.MediaPlayer
 import stevens.software.echojournal.PlaybackState
 import stevens.software.echojournal.R
-import stevens.software.echojournal.Recording
 import stevens.software.echojournal.VoiceRecorder
 import stevens.software.echojournal.data.EntryTopicsCrossRef
-import stevens.software.echojournal.data.EntryWithTopics
 import stevens.software.echojournal.data.JournalEntry
 import stevens.software.echojournal.data.Topic
 import stevens.software.echojournal.data.repositories.JournalEntriesRepository
@@ -31,16 +28,16 @@ class CreateJournalEntryViewModel(
     val mediaPlayer: MediaPlayer
 ): ViewModel() {
 
-    val entryTitle = MutableStateFlow("")
-    val entryDescription = MutableStateFlow("")
-    val allMoods = MutableStateFlow<List<SelectableMood>>(initialSetOfSelectableMoods())
-    val selectedMood = MutableStateFlow<SelectableMood?>(null)
-    val isSaveButtonEnabled = MutableStateFlow<Boolean>(false)
-    val recordingDuration = MutableStateFlow<Float>(0f)
-    val recording = MutableStateFlow<Recording?>(null)
-    val allTopics = MutableStateFlow<MutableList<Topic>>(mutableListOf())
-    val entryTopics = MutableStateFlow<MutableSet<EntryTopic>>(mutableSetOf())
-
+    val entryTitle: MutableStateFlow<String> = MutableStateFlow("")
+    val entryDescription: MutableStateFlow<String> = MutableStateFlow("")
+    val allMoods: MutableStateFlow<List<SelectableMood>> = MutableStateFlow<List<SelectableMood>>(initialSetOfSelectableMoods())
+    val selectedMood: MutableStateFlow<SelectableMood?> = MutableStateFlow<SelectableMood?>(null)
+    val isSaveButtonEnabled: MutableStateFlow<Boolean> = MutableStateFlow<Boolean>(false)
+    val entryTopics: MutableStateFlow<MutableSet<EntryTopic>> = MutableStateFlow<MutableSet<EntryTopic>>(mutableSetOf())
+    val trackDuration: MutableStateFlow<Long> = MutableStateFlow(0L)
+    val allTopics: StateFlow<List<EntryTopic>> = topicsRepository.getAllTopics().map { topics ->
+        topics.map { it.toEntryTopic() }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, listOf())
 
     val uiState = combine(
         entryTitle,
@@ -50,30 +47,24 @@ class CreateJournalEntryViewModel(
         isSaveButtonEnabled,
         mediaPlayer.playingState,
         mediaPlayer.playingTrack,
-        topicsRepository.getAllTopics(),
-        recording,
+        trackDuration,
+        allTopics,
         entryTopics)
-    { entryTitle, entryDescription, moods, selectedMood, saveButtonEnabled, playingState, playingTrack, topics, recording, entryTopics ->
+    { entryTitle, entryDescription, allMoods, selectedMood, saveButtonEnabled, playingState, playingTrack, trackDuration, allTopics, entryTopics ->
         CreateEntryUiState(
             entryTitle = entryTitle,
             entryDescription = entryDescription,
-            moods = moods,
+            moods = allMoods,
             selectedMood = selectedMood,
             saveButtonEnabled = saveButtonEnabled,
-            file = voiceRecorder.filePath,
             playbackState = playingState,
             progressPosition = playingTrack?.progressPosition?.toFloat() ?: 0.0f ,
             recordingName = voiceRecorder.fileName,
-//            trackDuration = recordingDuration,
-            recording = recording,
+            trackDuration = trackDuration,
             currentPosition = playingTrack?.currentPosition ?: 0L,
-            topics = topics.map { it.toEntryTopic() },
+            topics = allTopics,
             entryTopics = entryTopics
         )
-    }.onStart {
-       val recording1 = voiceRecorder.getRecording(voiceRecorder.fileName)
-        recording.emit(recording1)
-
     }.stateIn(
         viewModelScope,
         SharingStarted.Lazily,
@@ -83,11 +74,9 @@ class CreateJournalEntryViewModel(
             moods = listOf(),
             selectedMood = null,
             saveButtonEnabled = false,
-            file = "",
             playbackState = PlaybackState.STOPPED,
             progressPosition = 0f,
-//            trackDuration = 10f,
-            recording = null,
+            trackDuration = 0L,
             recordingName = "",
             currentPosition = 0L,
             topics = listOf(),
@@ -100,15 +89,15 @@ class CreateJournalEntryViewModel(
     )
 
     fun updateEntryTitle(newEntryTitle: String){
-        viewModelScope.launch{
-            val saveButtonEnabled = newEntryTitle != "" && uiState.value.entryDescription != "" && uiState.value.selectedMood != null
+        viewModelScope.launch {
+            val saveButtonEnabled = newEntryTitle != "" &&  uiState.value.selectedMood != null
             entryTitle.emit(newEntryTitle)
             isSaveButtonEnabled.emit(saveButtonEnabled)
         }
     }
 
     fun updateEntryDescription(newEntryDescription: String){
-        val saveButtonEnabled = uiState.value.entryTitle != "" && newEntryDescription != "" && uiState.value.selectedMood != null
+        val saveButtonEnabled = uiState.value.entryTitle != "" && uiState.value.selectedMood != null
 
         viewModelScope.launch{
             entryDescription.emit(newEntryDescription)
@@ -117,7 +106,7 @@ class CreateJournalEntryViewModel(
     }
 
     fun updateSelectedMood(selectableMood: SelectableMood?) {
-        val saveButtonEnabled = uiState.value.entryTitle != "" && uiState.value.entryDescription != "" && selectableMood != null
+        val saveButtonEnabled = uiState.value.entryTitle != "" && selectableMood != null
 
         viewModelScope.launch {
             selectedMood.emit(selectableMood)
@@ -129,8 +118,6 @@ class CreateJournalEntryViewModel(
         viewModelScope.launch{
             val entryId = journalEntriesRepository.addJournalEntry(uiState.value.toJournalEntry()) //todo error handling
 
-
-
             entryTopics.value.forEach { topic ->
                 val topic = topicsRepository.getTopic(topic.topic)
                 journalEntriesRepository.insertEntryWithTopics(
@@ -140,7 +127,6 @@ class CreateJournalEntryViewModel(
                     )
                 )
             }
-
         }
     }
 
@@ -166,19 +152,11 @@ class CreateJournalEntryViewModel(
         }
     }
 
-    fun playFile(){
-        mediaPlayer.playFile(voiceRecorder.recordingUri)
-    }
+    fun playFile() = mediaPlayer.playFile(voiceRecorder.recordingUri)
 
-    fun pauseRecording(){
-        mediaPlayer.pauseRecording()
-    }
+    fun pauseRecording() = mediaPlayer.pauseRecording()
 
-
-    fun resumeRecording(){
-        mediaPlayer.resumeRecording()
-    }
-
+    fun resumeRecording() = mediaPlayer.resumeRecording()
 
     fun CreateEntryUiState.toJournalEntry() =
         JournalEntry(
@@ -188,7 +166,6 @@ class CreateJournalEntryViewModel(
             timeOfEntry = OffsetDateTime.now(),
             mood = this.selectedMood?.id ?: Mood.NONE // todo - need to find solution for the null selected mood on start
         )
-
 
     private fun initialSetOfSelectableMoods() = listOf(
             SelectableMood(
@@ -251,29 +228,24 @@ class CreateJournalEntryViewModel(
             t3.first,
             t3.second,
             t3.third,
-            t4
+            t4,
         )
     }
-
 }
-
-
 
 data class CreateEntryUiState(
     val entryTitle: String,
     val entryDescription: String,
     val moods: List<SelectableMood>,
     val selectedMood: SelectableMood?,
-    val file: String,
     val saveButtonEnabled: Boolean,
     val playbackState: PlaybackState,
-    val recording: Recording?,
+    val trackDuration: Long,
     val progressPosition: Float,
     val recordingName: String,
     val currentPosition: Long,
     val topics: List<EntryTopic>,
     val entryTopics: Set<EntryTopic>
-//    val trackDuration: Float
 )
 
 data class SelectableMood(val id: Mood, val text: Int, val moodIcon: Int, val selectedMoodIcon: Int)

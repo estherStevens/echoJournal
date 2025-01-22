@@ -42,22 +42,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.setValue
-
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -69,6 +62,7 @@ import stevens.software.echojournal.R
 import stevens.software.echojournal.Recording
 import stevens.software.echojournal.interFontFamily
 import stevens.software.echojournal.ui.common.RecordingTrack
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateEntryScreen(
@@ -79,45 +73,24 @@ fun CreateEntryScreen(
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
     CreateEntry(
         moods = uiState.value.moods,
-        onNavigateBack = onNavigateBack,
         selectedMood = uiState.value.selectedMood,
         playbackState = uiState.value.playbackState,
         position = uiState.value.progressPosition,
-        recording = uiState.value.recording,
-        topics = uiState.value.topics,
-        myTopics = uiState.value.entryTopics,
+        trackDuration = uiState.value.trackDuration,
+        allTopics = uiState.value.topics,
         currentPosition = uiState.value.currentPosition,
         saveButtonEnabled = uiState.value.saveButtonEnabled,
-        onEntryTitleUpdated = {
-            viewModel.updateEntryTitle(it)
-        },
-        onDescriptionUpdated = {
-            viewModel.updateEntryDescription(it)
-        },
-        onMoodSelected = { mood ->
-            viewModel.updateSelectedMood(mood)
-        },
-        onSaveEntry = {
-            viewModel.saveEntry()
-        },
-        onPlayClicked = {
-            viewModel.playFile()
-        },
-        onPauseClicked = {
-            viewModel.pauseRecording()
-        },
-        onResumeClicked = {
-            viewModel.resumeRecording()
-        },
-        onTopicChosen = {
-            viewModel.updateEntryTopic(it)
-        },
-        onCreateTopic = {
-            viewModel.saveTopic(it)
-        },
-        onRemoveTopic = {
-            viewModel.removeEntryTopic(it)
-        }
+        onNavigateBack = onNavigateBack,
+        onEntryTitleUpdated = { viewModel.updateEntryTitle(it) },
+        onDescriptionUpdated = { viewModel.updateEntryDescription(it) },
+        onMoodSelected = { mood -> viewModel.updateSelectedMood(mood) },
+        onSaveEntry = { viewModel.saveEntry() },
+        onPlayClicked = { viewModel.playFile() },
+        onPauseClicked = { viewModel.pauseRecording() },
+        onResumeClicked = { viewModel.resumeRecording() },
+        onTopicChosen = { viewModel.updateEntryTopic(it) },
+        onCreateTopic = { viewModel.saveTopic(it) },
+        onRemoveTopic = { viewModel.removeEntryTopic(it) }
     )
 }
 
@@ -130,10 +103,9 @@ fun CreateEntry(
     selectedMood: SelectableMood?,
     playbackState: PlaybackState,
     position: Float,
-    topics: List<EntryTopic>,
-    recording: Recording?,
+    allTopics: List<EntryTopic>,
+    trackDuration: Long,
     currentPosition: Long,
-    myTopics: Set<EntryTopic>,
     onEntryTitleUpdated: (String) -> Unit,
     onDescriptionUpdated: (String) -> Unit,
     onMoodSelected: (SelectableMood?) -> Unit,
@@ -142,11 +114,10 @@ fun CreateEntry(
     onPauseClicked: () -> Unit,
     onResumeClicked: () -> Unit,
     onTopicChosen: (EntryTopic) -> Unit,
-    onCreateTopic:(String) -> Unit,
+    onCreateTopic: (String) -> Unit,
     onRemoveTopic: (EntryTopic) -> Unit
 ) {
     var showBottomSheet by remember { mutableStateOf(false) }
-
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -191,8 +162,6 @@ fun CreateEntry(
                     }
                 )
             }
-
-
         }
     ) { contentPadding ->
         Box(
@@ -205,7 +174,8 @@ fun CreateEntry(
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val moodIcon = if(selectedMood == null) R.drawable.add_mood_icon else selectedMood.selectedMoodIcon
+                    val moodIcon =
+                        if (selectedMood == null) R.drawable.add_mood_icon else selectedMood.selectedMoodIcon
                     Icon(
                         painter = painterResource(moodIcon),
                         contentDescription = null,
@@ -214,11 +184,9 @@ fun CreateEntry(
                             showBottomSheet = true
                         }
                     )
-
                     EntryTitle(
                         onEntryTitleUpdated = onEntryTitleUpdated
                     )
-
                 }
                 Spacer(Modifier.size(16.dp))
 
@@ -226,7 +194,7 @@ fun CreateEntry(
                     selectedMood = selectedMood?.id,
                     position = position,
                     currentPosition = currentPosition,
-                    trackDuration = recording?.duration?.toLong() ?: 0L, //todo can prob get the duration from the media player rather than MediaStore
+                    trackDuration = trackDuration ,
                     playbackState = playbackState,
                     onPlayClicked = onPlayClicked,
                     onPauseClicked = onPauseClicked,
@@ -235,38 +203,23 @@ fun CreateEntry(
 
                 Spacer(Modifier.size(16.dp))
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val chosenTopics by remember { mutableStateOf(myTopics) }
-
-                    EntryTopic (
-                        topics = topics,
-                        myTopics = chosenTopics,
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    EntryTopic(
+                        topics = allTopics,
                         onCreateTopic = onCreateTopic,
                         onTopicChosen = onTopicChosen,
                         onRemoveTopic = onRemoveTopic
                     )
                 }
-
                 Spacer(Modifier.size(16.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         painter = painterResource(R.drawable.pencil_icon),
                         contentDescription = null,
                         tint = Color.Unspecified
                     )
-                    EntryDescription(
-                        onDescriptionUpdated = onDescriptionUpdated
-                    )
+                    EntryDescription(onDescriptionUpdated = onDescriptionUpdated)
                 }
-
-
-
-
             }
         }
 
@@ -278,12 +231,9 @@ fun CreateEntry(
                     showBottomSheet = false
                 },
                 selectedMood = selectedMood,
-                onDismissBottomSheet = {
-                    showBottomSheet = false
-                },
-                onCancel = {
-                    showBottomSheet = false
-                })
+                onDismissBottomSheet = { showBottomSheet = false },
+                onCancel = { showBottomSheet = false }
+            )
         }
     }
 }
@@ -326,95 +276,96 @@ private fun EntryTitle(onEntryTitleUpdated: (String) -> Unit) {
 @Composable
 private fun EntryTopic(
     topics: List<EntryTopic>,
-    myTopics: Set<EntryTopic>,
     onTopicChosen: (EntryTopic) -> Unit,
     onRemoveTopic: (EntryTopic) -> Unit,
     onCreateTopic: (String) -> Unit
 ) {
     var topic by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(true) }
-    val entryTopics = remember { mutableStateListOf<EntryTopic>()}
+    val entryTopics = remember { mutableStateListOf<EntryTopic>() }
     val filteredTopics = topics.filter { it.topic.startsWith(topic) }
 
     val topicWithQuotes = "'$topic'" //todo find better way
-    val text = String.format(LocalContext.current.getString(R.string.new_entry_create_topic), topicWithQuotes)
-        FlowRow(modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(
-                painter = painterResource(R.drawable.topic_icon),
-                contentDescription = null,
-                tint = Color.Unspecified,
-                modifier = Modifier.align(Alignment.CenterVertically)
-            )
-            entryTopics.forEach{ topic ->
-                InputChip(
-                    modifier = Modifier.align(Alignment.CenterVertically),
-                    selected = true,
-                    onClick = {},
-                    label = {
-                        Text(
-                            text = topic.topic,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            fontFamily = interFontFamily,
-                            color = colorResource(R.color.dark_grey),
-                        )
-                    },
-                    shape = CircleShape,
-                    colors = InputChipDefaults.inputChipColors().copy(
-                        selectedContainerColor = colorResource(R.color.pale_grey)
-                    ),
-                    leadingIcon = {
-                        Icon(
-                            painter = painterResource(R.drawable.topic_icon),
-                            contentDescription = null,
-                            tint = Color.Unspecified
-                        )
-                    },
-                    trailingIcon = {
-                        Icon(
-                            painter = painterResource(R.drawable.close_icon),
-                            contentDescription = null,
-                            tint = Color.Unspecified,
-                            modifier = Modifier.clickable{
-                                if(entryTopics.contains(topic)) {
-                                    entryTopics.remove(topic)
-                                }
-                                onRemoveTopic(topic)
-                            }
-                        )
-                    }
-                )
-            }
-
-            TextField(
-                value = topic,
-                onValueChange = {
-                    topic = it
-                    expanded = it.isNotEmpty()
-                },
-                modifier = Modifier.defaultMinSize(minWidth = 10.dp),
-                singleLine = true,
-                placeholder = {
+    val createTopicText = String.format(
+        LocalContext.current.getString(R.string.new_entry_create_topic),
+        topicWithQuotes
+    )
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.topic_icon),
+            contentDescription = null,
+            tint = Color.Unspecified,
+            modifier = Modifier.align(Alignment.CenterVertically)
+        )
+        entryTopics.forEach { topic ->
+            InputChip(
+                modifier = Modifier.align(Alignment.CenterVertically),
+                selected = true,
+                onClick = {},
+                label = {
                     Text(
-                        text = stringResource(R.string.new_entry_add_topic),
-                        fontFamily = interFontFamily,
-                        fontWeight = FontWeight.Normal,
+                        text = topic.topic,
                         fontSize = 14.sp,
-                        color = colorResource(R.color.light_grey)
+                        fontWeight = FontWeight.Medium,
+                        fontFamily = interFontFamily,
+                        color = colorResource(R.color.dark_grey),
                     )
                 },
-                colors = TextFieldDefaults.colors().copy(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
-                )
-
-
+                shape = CircleShape,
+                colors = InputChipDefaults.inputChipColors().copy(
+                    selectedContainerColor = colorResource(R.color.pale_grey)
+                ),
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(R.drawable.topic_icon),
+                        contentDescription = null,
+                        tint = Color.Unspecified
+                    )
+                },
+                trailingIcon = {
+                    Icon(
+                        painter = painterResource(R.drawable.close_icon),
+                        contentDescription = null,
+                        tint = Color.Unspecified,
+                        modifier = Modifier.clickable {
+                            if (entryTopics.contains(topic)) {
+                                entryTopics.remove(topic)
+                            }
+                            onRemoveTopic(topic)
+                        }
+                    )
+                }
             )
         }
 
+        TextField(
+            value = topic,
+            onValueChange = {
+                topic = it
+                expanded = it.isNotEmpty()
+            },
+            modifier = Modifier.defaultMinSize(minWidth = 10.dp),
+            singleLine = true,
+            placeholder = {
+                Text(
+                    text = stringResource(R.string.new_entry_add_topic),
+                    fontFamily = interFontFamily,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 14.sp,
+                    color = colorResource(R.color.light_grey)
+                )
+            },
+            colors = TextFieldDefaults.colors().copy(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
+            )
+        )
+    }
 
     DropdownMenu(
         expanded = expanded,
@@ -439,7 +390,7 @@ private fun EntryTopic(
                 onClick = {
                     expanded = false
                     topic = ""
-                    if(!(entryTopics.contains(filteredTopic))) {
+                    if (!(entryTopics.contains(filteredTopic))) {
                         entryTopics.add(filteredTopic)
                     }
                     onTopicChosen(filteredTopic)
@@ -468,12 +419,11 @@ private fun EntryTopic(
                 expanded = false
                 entryTopics.add(EntryTopic(topic))
                 onCreateTopic(topic)
-//                onTopicChosen(EntryTopic(topic))
                 topic = ""
             },
             text = {
                 Text(
-                    text = text,
+                    text = createTopicText,
                     fontWeight = FontWeight.Medium,
                     fontFamily = interFontFamily,
                     fontSize = 14.sp,
@@ -488,37 +438,7 @@ private fun EntryTopic(
                 )
             }
         )
-
     }
-}
-
-
-@Composable
-private fun CustomDropDownMenu(){
-//    if(expanded) {
-//        Box(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(8.dp))) {
-//            LazyColumn {
-//                items(topics) { topic ->
-//                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(8.dp)) {
-//                        Icon(
-//                            painter = painterResource(R.drawable.topic_icon),
-//                            contentDescription = null,
-//                            tint = Color.Unspecified)
-//                        Spacer(Modifier.size(6.dp))
-//                        Text(
-//                            text = topic.topic,
-//                            fontWeight = FontWeight.Medium,
-//                            fontFamily = interFontFamily,
-//                            fontSize = 14.sp,
-//                            color = colorResource(R.color.denim_blue)
-//                        )
-//                    }
-//
-//                }
-//            }
-//        }
-//    }
-
 }
 
 @Composable
@@ -578,7 +498,7 @@ private fun SaveEntryButton(
     enabled: Boolean,
     onSaveEntry: () -> Unit,
 ) {
-    val textColor = if(enabled) Color.White else colorResource(R.color.grey)
+    val textColor = if (enabled) Color.White else colorResource(R.color.grey)
     Button(
         onClick = onSaveEntry,
         modifier = modifier,
@@ -604,8 +524,8 @@ private fun ConfirmMoodButton(
     modifier: Modifier,
     onConfirmMood: () -> Unit
 ) {
-    val iconTint = if(enabled) Color.White else colorResource(R.color.grey)
-    val textColour = if(enabled) Color.White else colorResource(R.color.grey)
+    val iconTint = if (enabled) Color.White else colorResource(R.color.grey)
+    val textColour = if (enabled) Color.White else colorResource(R.color.grey)
 
     Button(
         onClick = onConfirmMood,
@@ -616,7 +536,7 @@ private fun ConfirmMoodButton(
             disabledContainerColor = colorResource(R.color.disabled_gred)
         )
     ) {
-        Row{
+        Row {
             Icon(
                 painterResource(R.drawable.confirm),
                 contentDescription = null,
@@ -663,7 +583,7 @@ private fun ChooseMoodBottomSheetDialog(
                     )
                     Spacer(Modifier.size(32.dp))
                     SelectMood(
-                        options = moods,
+                        moods = moods,
                         selectedMood = selectedMood,
                         updateSelectedMood = onMoodSelected,
                         onCancel = onCancel
@@ -680,12 +600,10 @@ private fun ChooseMoodBottomSheetDialog(
 @Composable
 fun SelectMood(
     selectedMood: SelectableMood?,
-    options: List<SelectableMood>,
+    moods: List<SelectableMood>,
     updateSelectedMood: (SelectableMood?) -> Unit,
-//    onConfirmMood: (SelectableMood) -> Unit,
     onCancel: () -> Unit
 ) {
-
     var selectedOption by remember { mutableStateOf(selectedMood) }
 
     Row(
@@ -694,17 +612,16 @@ fun SelectMood(
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
     ) {
-        options.forEach { option ->
+        moods.forEach { mood ->
             MoodButton(
-                selected = option == selectedOption,
+                moodSelected = mood == selectedOption,
                 onClick = {
-                    selectedOption = option
+                    selectedOption = mood
                 },
-                icon = option.moodIcon,
-                text = option.text,
-                selectedIcon = selectedOption?.selectedMoodIcon // Or any other selected icon
+                icon = mood.moodIcon,
+                text = mood.text,
+                selectedIcon = selectedOption?.selectedMoodIcon
             )
-
         }
     }
     Spacer(Modifier.size(24.dp))
@@ -730,14 +647,14 @@ fun SelectMood(
 
 @Composable
 fun MoodButton(
-    selected: Boolean,
+    moodSelected: Boolean,
     onClick: () -> Unit,
     icon: Int,
     text: Int,
     selectedIcon: Int?,
 ) {
-    val textColor = if(selected) R.color.dark_black else R.color.grey
-    val textWeight = if(selected) FontWeight.Medium else FontWeight.Normal
+    val textColor = if (moodSelected) R.color.dark_black else R.color.grey
+    val textWeight = if (moodSelected) FontWeight.Medium else FontWeight.Normal
     val imageHeight = 34.dp
 
     val interactionSource = remember { MutableInteractionSource() }
@@ -746,9 +663,11 @@ fun MoodButton(
         modifier = Modifier
             .clickable(interactionSource = interactionSource, indication = null) { onClick() }
     ) {
-        Column(verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally) {
-            if (selected && selectedIcon != null) {
+        Column(
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            if (moodSelected && selectedIcon != null) {
                 Image(
                     painter = painterResource(selectedIcon),
                     contentDescription = null,
@@ -786,9 +705,8 @@ fun Preview() {
             selectedMood = SelectableMood(Mood.EXCITED, 0, 0, 0),
             playbackState = PlaybackState.PLAYING,
             currentPosition = 0L,
-            recording =  null,
-            topics = listOf(),
-            myTopics = setOf(),
+            trackDuration = 0L,
+            allTopics = listOf(),
             onEntryTitleUpdated = {},
             onDescriptionUpdated = {},
             onMoodSelected = { },
