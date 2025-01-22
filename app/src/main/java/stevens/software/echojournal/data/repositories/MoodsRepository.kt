@@ -6,7 +6,7 @@ import stevens.software.echojournal.ui.journal_entries.EntryMood
 
 class MoodsRepository {
 
-    fun getFilterMoods() : List<EntryMood> {
+    fun getAllMoods() : List<EntryMood> {
         return listOf(
             EntryMood(
                 id = Mood.EXCITED,

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,6 +34,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.InputChipDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.MenuItemColors
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -51,8 +54,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -64,6 +69,7 @@ import stevens.software.echojournal.ui.common.RecordingTrack
 import stevens.software.echojournal.ui.create_journal.EntryTopic
 import stevens.software.echojournal.ui.create_journal.Mood
 import java.time.LocalDate
+import kotlin.io.path.fileVisitor
 
 @RequiresApi(Build.VERSION_CODES.S)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -75,45 +81,43 @@ fun JournalEntriesScreen(
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
 
     JournalEntries(
-        moods = uiState.value.moods,
+        allMoods = uiState.value.allMoods,
         entries = uiState.value.entries,
+        filteredMoods = uiState.value.filteredMoods,
         onStartRecording = { viewModel.startRecording() },
         onSaveRecording = {
             navigateToCreateEntry()
             viewModel.saveRecording()
         },
-        onPlayClicked = {
-            viewModel.playRecording(it)
-        },
-        onPauseClicked = {
-            viewModel.pauseRecording()
-        },
-        onResumeClicked = {
-            viewModel.resumeRecording()
-        }
+        onPlayClicked = { viewModel.playRecording(it) },
+        onPauseClicked = { viewModel.pauseRecording() },
+        onResumeClicked = { viewModel.resumeRecording() },
+        onSelectedMoods = { viewModel.updateFilterMoods(it) }
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun JournalEntries(
-    moods: List<EntryMood>,
+    allMoods: List<EntryMood>,
     entries: List<EntryDateCategory>,
+    filteredMoods: List<EntryMood>,
     onStartRecording: () -> Unit,
     onSaveRecording: () -> Unit,
     onPlayClicked: (Entry) -> Unit,
     onPauseClicked: (Entry) -> Unit,
-    onResumeClicked: (Entry) -> Unit
+    onResumeClicked: (Entry) -> Unit,
+    onSelectedMoods: (List<EntryMood>) -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState()
-    var showBottomSheet by remember { mutableStateOf(false) }
+    val recordingBottomSheetState = rememberModalBottomSheetState()
+    var showRecordingBottomSheet by remember { mutableStateOf(false) }
 
     val recordingPermissionState = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { isGranted ->
             if (isGranted) {
                 onStartRecording()
-                showBottomSheet = true
+                showRecordingBottomSheet = true
             }
         }
     )
@@ -151,7 +155,9 @@ fun JournalEntries(
                         Spacer(Modifier.size(8.dp))
                         Row {
                             MoodsFilterPill(
-                                moods = moods
+                                allMoods = allMoods,
+                                filteredMoods = filteredMoods,
+                                onSelectedMoods = onSelectedMoods,
                             )
                             Spacer(Modifier.size(6.dp))
                             TopicsFilterPill()
@@ -205,15 +211,9 @@ fun JournalEntries(
                                                     currentPosition = entry.currentPosition,
                                                     trackDuration = entry.recording?.duration ?: 0L ,
                                                     playbackState = entry.playingState,
-                                                    onPlayClicked = {
-                                                        onPlayClicked(entry)
-                                                    },
-                                                    onPauseClicked = {
-                                                        onPauseClicked(entry)
-                                                    },
-                                                    onResumeClicked = {
-                                                        onResumeClicked(entry)
-                                                    }
+                                                    onPlayClicked = { onPlayClicked(entry) },
+                                                    onPauseClicked = { onPauseClicked(entry) },
+                                                    onResumeClicked = { onResumeClicked(entry) }
                                                 )
 
                                                 Spacer(Modifier.size(6.dp))
@@ -230,9 +230,7 @@ fun JournalEntries(
 
                                                 Spacer(Modifier.size(6.dp))
 
-                                                Row(
-                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                                ){
+                                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)){
                                                     entry.topics.forEach{ topic ->
                                                         TopicPill(
                                                             topic = topic.topic
@@ -253,13 +251,13 @@ fun JournalEntries(
                 }
             }
 
-            if (showBottomSheet) {
+            if (showRecordingBottomSheet) {
                 ModalBottomSheet(
                     containerColor = colorResource(R.color.bottom_sheet_dialog_bg),
                     onDismissRequest = {
-                        showBottomSheet = false
+                        showRecordingBottomSheet = false
                     },
-                    sheetState = sheetState,
+                    sheetState = recordingBottomSheetState,
                     content = {
                         Box {
                             Column(
@@ -340,25 +338,48 @@ fun TopicsFilterPill() {
 
 @Composable
 fun MoodsFilterPill(
-    moods: List<EntryMood>
+    allMoods: List<EntryMood>,
+    filteredMoods: List<EntryMood>,
+    onSelectedMoods: (List<EntryMood>) -> Unit
 ) {
-    var selected by remember { mutableStateOf(false) }
-    var expanded by remember { mutableStateOf(false) }
-    var selectedOptionText by remember { mutableStateOf<EntryMood?>(null) }
+    var chipSelected by remember { mutableStateOf(false) }
+    var moodsDropDownExpanded by remember { mutableStateOf(false) }
+    var selectedMoods = remember { mutableStateListOf<EntryMood>() }
+
+    val moodsText = StringBuilder()
+    filteredMoods.forEach{
+        moodsText.append(LocalContext.current.getString(it.text)) //todo move to view model
+        moodsText.append(",") // todo - find a better way
+    }
+
+    val text = if(filteredMoods.isEmpty()) stringResource(R.string.entries_pill_all_moods) else moodsText.toString()
 
     FilterChip(
-        selected = selected,
+        selected = chipSelected,
         onClick = {
-            expanded = true
-            selected = !selected
+            moodsDropDownExpanded = true
+            chipSelected = !chipSelected
         },
         label = {
             Text(
-                text = stringResource(R.string.entries_pill_all_moods),
+                text = text,
                 fontWeight = FontWeight.Medium,
                 fontFamily = interFontFamily,
                 fontSize = 16.sp
             )
+        },
+        leadingIcon = {
+            if(filteredMoods.isNotEmpty()) {
+                Row {
+                    filteredMoods.forEach {
+                        Icon(
+                            painterResource(it.moodIcon),
+                            contentDescription = null,
+                            tint = Color.Unspecified
+                        )
+                    }
+                }
+            }
         },
         colors = FilterChipDefaults.filterChipColors().copy(
             containerColor = Color.Transparent,
@@ -366,7 +387,7 @@ fun MoodsFilterPill(
         ),
         border = FilterChipDefaults.filterChipBorder(
             enabled = true,
-            selected = selected,
+            selected = chipSelected,
             borderWidth = 1.dp,
             borderColor = colorResource(R.color.light_grey),
             selectedBorderColor = colorResource(R.color.dark_blue)
@@ -375,41 +396,61 @@ fun MoodsFilterPill(
     )
 
     DropdownMenu(
-        expanded = expanded,
-        onDismissRequest = { expanded = false },
+        expanded = moodsDropDownExpanded,
+        onDismissRequest = {
+            moodsDropDownExpanded = false
+            onSelectedMoods(selectedMoods) },
         modifier = Modifier
             .padding(horizontal = 16.dp)
             .fillMaxWidth()
             .background(
-                color = Color.White, // Or your desired background color
+                color = Color.White,
                 shape = RoundedCornerShape(8.dp)
             ),
         containerColor = Color.Transparent,
         shadowElevation = 0.dp
     ) {
-        moods.forEach { mood ->
-            DropdownMenuItem(
-                onClick = {
-                    selectedOptionText = mood
-                    expanded = true
-                },
-                text = {
-                    Text(
-                        text = stringResource(mood.text),
-                        fontWeight = FontWeight.Medium,
-                        fontFamily = interFontFamily,
-                        fontSize = 14.sp,
-                        color = colorResource(R.color.denim_blue)
-                    )
-                },
-                leadingIcon = {
-                    Icon(
-                        painter = painterResource(mood.moodIcon),
-                        tint = Color.Unspecified,
-                        contentDescription = null
-                    )
-                }
-            )
+        allMoods.forEach { mood ->
+            val backgroundColour = if(selectedMoods.contains(mood)) colorResource(R.color.filter_list_bg).copy(alpha = 0.05f) else Color.Transparent
+
+            Box(modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)) {
+                DropdownMenuItem(
+                    onClick = {
+                        moodsDropDownExpanded = true
+                        if(selectedMoods.contains(mood)) {
+                            selectedMoods.remove(mood)
+                        } else {
+                            selectedMoods.add(mood)
+                        }
+                    },
+                    contentPadding = PaddingValues(horizontal = 20.dp),
+                    modifier = Modifier.background(color = backgroundColour, shape = RoundedCornerShape(8.dp)),
+                    trailingIcon = {
+                        if(selectedMoods.contains(mood)) {
+                            Icon(
+                                painter = painterResource(R.drawable.tick),
+                                contentDescription = null
+                            )
+                        }
+                    },
+                    text = {
+                        Text(
+                            text = stringResource(mood.text),
+                            fontWeight = FontWeight.Medium,
+                            fontFamily = interFontFamily,
+                            fontSize = 14.sp,
+                            color = colorResource(R.color.denim_blue)
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(mood.moodIcon),
+                            tint = Color.Unspecified,
+                            contentDescription = null
+                        )
+                    }
+                )
+            }
         }
 
     }
@@ -592,7 +633,7 @@ fun TopicPill(topic: String){
 fun Preview() {
     MaterialTheme {
         JournalEntries(
-            moods = listOf(),
+            allMoods = listOf(),
             entries = listOf(EntryDateCategory(date = "Today", entries = listOf(
                 Entry(
                     mood = EntryMood(id = Mood.EXCITED, text = R.string.entries_mood_excited, moodIcon = 0),
@@ -616,7 +657,9 @@ fun Preview() {
             onSaveRecording = {},
             onPlayClicked = {},
             onPauseClicked = {},
-            onResumeClicked = {}
+            onResumeClicked = {},
+            onSelectedMoods = {},
+            filteredMoods = listOf(),
         )
     }
 }

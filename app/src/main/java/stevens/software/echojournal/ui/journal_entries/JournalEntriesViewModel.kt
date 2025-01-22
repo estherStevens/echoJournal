@@ -5,12 +5,17 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import stevens.software.echojournal.MediaPlayer
 import stevens.software.echojournal.PlaybackState
+import stevens.software.echojournal.R
 import stevens.software.echojournal.Recording
 import stevens.software.echojournal.VoiceRecorder
 import stevens.software.echojournal.data.EntryWithTopics
@@ -23,6 +28,7 @@ import stevens.software.echojournal.ui.create_journal.Mood
 import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.collections.map
 
 @RequiresApi(Build.VERSION_CODES.S)
 class JournalEntriesViewModel(
@@ -32,28 +38,34 @@ class JournalEntriesViewModel(
     private val mediaPlayer: MediaPlayer
 ) : ViewModel() {
 
-    private val isLoading = MutableStateFlow<Boolean>(true)
+    private val isLoading: MutableStateFlow<Boolean> = MutableStateFlow<Boolean>(true)
+    private val filteredMoods: MutableStateFlow<List<EntryMood>> = MutableStateFlow<List<EntryMood>>(listOf())
+    private val journalEntries: StateFlow<List<EntryWithTopics>> = journalEntriesRepository.getAllEntriesWithTopics().stateIn(
+        viewModelScope, SharingStarted.Eagerly, listOf() //dunno if this needs to be a stateflow or flow
+    )
 
     val uiState = combine(
-        journalEntriesRepository.getAllEntriesWithTopics(),
+        journalEntries,
+        filteredMoods,
         isLoading,
         mediaPlayer.playingTrack,
-    ) { entriesWithTopics, isLoading, playingState ->
+    ) { entriesWithTopics, filteredMoods, isLoading, playingState ->
         JournalEntriesUiState(
-            moods = moodsRepository.getFilterMoods(),
+            allMoods = moodsRepository.getAllMoods(),
+            filteredMoods = filteredMoods,
             entries = groupEntriesByDate(
-                entries = entriesWithTopics.map { it.toEntry(playingState) }
+                entries = entriesWithTopics.map { it.toEntry(playingState) },
             ),
         )
     }.stateIn(
         viewModelScope,
         SharingStarted.Eagerly,
         JournalEntriesUiState(
-            moods = listOf(),
+            allMoods = listOf(),
+            filteredMoods = listOf(),
             entries = listOf(),
         )
     )
-
 
     fun groupEntriesByDate(entries: List<Entry>) : List<EntryDateCategory>{
         return entries
@@ -65,13 +77,9 @@ class JournalEntriesViewModel(
                 entries = it.value
             )
         }
-
-
     }
 
-    fun startRecording(){
-        voiceRecorder.startRecording()
-    }
+    fun startRecording() = voiceRecorder.startRecording()
 
     fun EntryWithTopics.toEntry(playbackState: PlayingTrack?) : Entry {
         var recording = voiceRecorder.getRecording(this.entry.recordingFilePath)
@@ -99,30 +107,10 @@ class JournalEntriesViewModel(
         )
     }
 
-
-    fun JournalEntry.toEntry(playbackState: PlayingTrack?) : Entry {
-        var recording = voiceRecorder.getRecording(this.recordingFilePath)
-        var playingState = PlaybackState.STOPPED
-        var progressPosition = 0f
-        var currentPosition = 0L
-        if(playbackState?.file == this.recordingFilePath) {
-            playingState = playbackState.playbackState
-            progressPosition = playbackState.progressPosition
-            currentPosition = playbackState.currentPosition
+    fun updateFilterMoods(mood: List<EntryMood>) {
+        viewModelScope.launch{
+            filteredMoods.emit(mood)
         }
-        return Entry(
-            title = this.title,
-            recordingFileName = this.recordingFilePath,
-            description = this.description,
-            entryTime = getTime(this.timeOfEntry),
-            entryDate = this.timeOfEntry.toLocalDate(),
-            mood = moodsRepository.toEntryMood(this.mood),
-            recording = recording,
-            playingState = playingState,
-            progressPosition = progressPosition,
-            currentPosition = currentPosition,
-            topics = listOf<EntryTopic>()
-        )
     }
 
     fun playRecording(entry: Entry){
@@ -137,7 +125,6 @@ class JournalEntriesViewModel(
         mediaPlayer.resumeRecording()
     }
 
-
     fun saveRecording(){
         voiceRecorder.stopRecording()
     }
@@ -149,7 +136,6 @@ class JournalEntriesViewModel(
 
     fun getDate(time: LocalDate): String {
         val yesterday = LocalDate.now().minusDays(1)
-
 
        return  when{
             time == LocalDate.now() -> "TODAY" //todo - remove from viewmodel
@@ -170,10 +156,10 @@ fun Topic.toEntryTopic() = EntryTopic(
 )
 
 data class JournalEntriesUiState(
-    val moods: List<EntryMood>,
+    val allMoods: List<EntryMood>,
+    val filteredMoods: List<EntryMood>,
     val entries: List<EntryDateCategory>
 )
-
 
 data class Entry(
     val mood: EntryMood,
@@ -188,6 +174,6 @@ data class Entry(
     val currentPosition: Long,
     val topics: List<EntryTopic>
 )
-data class EntryMood(val id: Mood, val text: Int, val moodIcon: Int)
+data class EntryMood(val id: Mood, val text: Int, val moodIcon: Int, var selected: Boolean? = false)
 data class EntryDateCategory(val date: String, val entries : List<Entry>)
 data class PlayingTrack(val file: String, val playbackState: PlaybackState, val progressPosition: Float, val currentPosition: Long)
