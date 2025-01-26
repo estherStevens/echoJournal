@@ -6,12 +6,20 @@ import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flatMap
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import stevens.software.echojournal.MediaPlayer
 import stevens.software.echojournal.PlaybackState
@@ -28,6 +36,7 @@ import stevens.software.echojournal.ui.create_journal.Mood
 import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.collections.filter
 import kotlin.collections.map
 
 @RequiresApi(Build.VERSION_CODES.S)
@@ -39,13 +48,17 @@ class JournalEntriesViewModel(
 ) : ViewModel() {
 
     private val isLoading: MutableStateFlow<Boolean> = MutableStateFlow<Boolean>(true)
-    private val filteredMoods: MutableStateFlow<List<EntryMood>> = MutableStateFlow<List<EntryMood>>(listOf())
-    private val journalEntries: StateFlow<List<EntryWithTopics>> = journalEntriesRepository.getAllEntriesWithTopics().stateIn(
-        viewModelScope, SharingStarted.Eagerly, listOf() //dunno if this needs to be a stateflow or flow
-    )
+    private val _filteredMoods = MutableStateFlow<MutableList<EntryMood>>(mutableListOf <EntryMood>())
+    val filteredMoods: StateFlow<List<EntryMood>> = _filteredMoods.asStateFlow()
+    private val journalEntries : StateFlow<List<EntryWithTopics>> = journalEntriesRepository.getAllEntriesWithTopics()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, listOf())
+
+    private val filteredJournalEntries = combine(filteredMoods, journalEntries) { moods, entries ->
+        filterEntriesByMood(moods, entries)
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, listOf())
 
     val uiState = combine(
-        journalEntries,
+        filteredJournalEntries,
         filteredMoods,
         isLoading,
         mediaPlayer.playingTrack,
@@ -55,7 +68,7 @@ class JournalEntriesViewModel(
             filteredMoods = filteredMoods,
             entries = groupEntriesByDate(
                 entries = entriesWithTopics.map { it.toEntry(playingState) },
-            ),
+            )
         )
     }.stateIn(
         viewModelScope,
@@ -67,16 +80,22 @@ class JournalEntriesViewModel(
         )
     )
 
+    fun filterEntriesByMood(moods: List<EntryMood>, entries: List<EntryWithTopics>) : List<EntryWithTopics>{
+        if (moods.isEmpty()) return entries
+        val entries = moods.flatMap { mood -> entries.filter { mood.id == it.entry.mood } }
+        return entries.toList()
+    }
+
     fun groupEntriesByDate(entries: List<Entry>) : List<EntryDateCategory>{
-        return entries
+      return entries
             .sortedByDescending { it.entryDate }
             .sortedByDescending { it.entryTime }
             .groupBy { it.entryDate }.map {
-            EntryDateCategory(
-                date = getDate(it.key),
-                entries = it.value
-            )
-        }
+                EntryDateCategory(
+                    date = getDate(it.key),
+                    entries = it.value
+                )
+            }
     }
 
     fun startRecording() = voiceRecorder.startRecording()
@@ -107,9 +126,14 @@ class JournalEntriesViewModel(
         )
     }
 
-    fun updateFilterMoods(mood: List<EntryMood>) {
+    fun updateFilterMoods(moods: List<EntryMood>) {
         viewModelScope.launch{
-            filteredMoods.emit(mood)
+            _filteredMoods.update {
+                _filteredMoods.value.toMutableList().apply {
+                    this.clear()
+                    this.addAll(moods)
+                }
+            }
         }
     }
 

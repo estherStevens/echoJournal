@@ -346,13 +346,7 @@ fun MoodsFilterPill(
     var moodsDropDownExpanded by remember { mutableStateOf(false) }
     var selectedMoods = remember { mutableStateListOf<EntryMood>() }
 
-    val moodsText = StringBuilder()
-    filteredMoods.forEach{
-        moodsText.append(LocalContext.current.getString(it.text)) //todo move to view model
-        moodsText.append(",") // todo - find a better way
-    }
-
-    val text = if(filteredMoods.isEmpty()) stringResource(R.string.entries_pill_all_moods) else moodsText.toString()
+    val text = if(filteredMoods.isEmpty()) stringResource(R.string.entries_pill_all_moods) else filteredMoods.toMoodText().joinToString(", ")
 
     FilterChip(
         selected = chipSelected,
@@ -627,6 +621,19 @@ fun TopicPill(topic: String){
     }
 }
 
+@Composable
+fun List<EntryMood>.toMoodText() : MutableList<String> {
+    val context = LocalContext.current
+    val moods = mutableListOf<String>()
+    this.forEach {
+        moods.add(context.getString(it.text))
+    }
+    return moods
+}
+
+
+fun EntryMood.toText() =
+    this.text
 
 @Composable
 @Preview(showSystemUi = true)
