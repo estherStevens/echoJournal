@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSizeIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -64,6 +65,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
 import stevens.software.echojournal.PlaybackState
 import stevens.software.echojournal.R
+import stevens.software.echojournal.data.Topic
 import stevens.software.echojournal.interFontFamily
 import stevens.software.echojournal.ui.common.RecordingTrack
 import stevens.software.echojournal.ui.create_journal.EntryTopic
@@ -84,6 +86,8 @@ fun JournalEntriesScreen(
         allMoods = uiState.value.allMoods,
         entries = uiState.value.entries,
         filteredMoods = uiState.value.filteredMoods,
+        allTopics = uiState.value.allTopics,
+        filteredTopics = uiState.value.filteredTopics,
         onStartRecording = { viewModel.startRecording() },
         onSaveRecording = {
             navigateToCreateEntry()
@@ -92,7 +96,8 @@ fun JournalEntriesScreen(
         onPlayClicked = { viewModel.playRecording(it) },
         onPauseClicked = { viewModel.pauseRecording() },
         onResumeClicked = { viewModel.resumeRecording() },
-        onSelectedMoods = { viewModel.updateFilterMoods(it) }
+        onSelectedMoods = { viewModel.updateFilterMoods(it) },
+        onSelectedTopics = { viewModel.updateFilterTopics(it) }
     )
 }
 
@@ -102,12 +107,15 @@ fun JournalEntries(
     allMoods: List<EntryMood>,
     entries: List<EntryDateCategory>,
     filteredMoods: List<EntryMood>,
+    allTopics: List<Topic>,
+    filteredTopics: List<Topic>,
     onStartRecording: () -> Unit,
     onSaveRecording: () -> Unit,
     onPlayClicked: (Entry) -> Unit,
     onPauseClicked: (Entry) -> Unit,
     onResumeClicked: (Entry) -> Unit,
-    onSelectedMoods: (List<EntryMood>) -> Unit
+    onSelectedMoods: (List<EntryMood>) -> Unit,
+    onSelectedTopics: (List<Topic>) -> Unit
 ) {
     val recordingBottomSheetState = rememberModalBottomSheetState()
     var showRecordingBottomSheet by remember { mutableStateOf(false) }
@@ -160,7 +168,11 @@ fun JournalEntries(
                                 onSelectedMoods = onSelectedMoods,
                             )
                             Spacer(Modifier.size(6.dp))
-                            TopicsFilterPill()
+                            TopicsFilterPill(
+                                allTopics = allTopics,
+                                filteredTopics = filteredTopics,
+                                onSelectedTopics = onSelectedTopics
+                            )
                         }
                         Spacer(Modifier.size(8.dp))
 
@@ -305,17 +317,35 @@ fun EntryDateCategory(date: String){
 }
 
 @Composable
-fun TopicsFilterPill() {
-    var selected by remember { mutableStateOf(false) }
+fun TopicsFilterPill(
+    allTopics: List<Topic>,
+    filteredTopics: List<Topic>,
+    onSelectedTopics: (List<Topic>) -> Unit
+) {
+    var chipSelected by remember { mutableStateOf(false) }
+    var topicsDropDownExpanded by remember { mutableStateOf(false) }
+    var selectedTopics = remember { mutableStateListOf<Topic>() }
+
+    val text = if(filteredTopics.isEmpty()) {
+        stringResource(R.string.entries_pill_all_topics)
+    } else {
+        val stringBuilder = StringBuilder()
+        stringBuilder.append(filteredTopics.take(2).toTopicText().joinToString(", "))
+        if(filteredTopics.size >= 2){
+            stringBuilder.append(" +${filteredTopics.size - 2}")
+        }
+        stringBuilder.toString()
+    }
 
     FilterChip(
-        selected = selected,
+        selected = chipSelected,
         onClick = {
-            selected = !selected
+            topicsDropDownExpanded = true
+            chipSelected = !chipSelected
         },
         label = {
             Text(
-                text = stringResource(R.string.entries_pill_all_topics),
+                text = text,
                 fontWeight = FontWeight.Medium,
                 fontFamily = interFontFamily,
                 fontSize = 16.sp
@@ -327,13 +357,74 @@ fun TopicsFilterPill() {
         ),
         border = FilterChipDefaults.filterChipBorder(
             enabled = true,
-            selected = selected,
+            selected = chipSelected,
             borderWidth = 1.dp,
             borderColor = colorResource(R.color.light_grey),
             selectedBorderColor = colorResource(R.color.dark_blue)
         ),
         shape = CircleShape
     )
+
+    DropdownMenu(
+        expanded = topicsDropDownExpanded,
+        onDismissRequest = {
+            topicsDropDownExpanded = false
+            onSelectedTopics(selectedTopics) },
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth()
+            .requiredSizeIn(maxHeight = 400.dp) // todo - create my own Dropdown menu as this not ideal
+            .background(
+                color = Color.White,
+                shape = RoundedCornerShape(8.dp)
+            ),
+        containerColor = Color.Transparent,
+        shadowElevation = 0.dp
+    ) {
+        allTopics.forEach { topic ->
+            val backgroundColour = if(selectedTopics.contains(topic)) colorResource(R.color.filter_list_bg).copy(alpha = 0.05f) else Color.Transparent
+
+            Box(modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)) {
+                DropdownMenuItem(
+                    onClick = {
+                        topicsDropDownExpanded = true
+                        if(selectedTopics.contains(topic)) {
+                            selectedTopics.remove(topic)
+                        } else {
+                            selectedTopics.add(topic)
+                        }
+                    },
+                    contentPadding = PaddingValues(horizontal = 20.dp),
+                    modifier = Modifier.background(color = backgroundColour, shape = RoundedCornerShape(8.dp)),
+                    trailingIcon = {
+                        if(selectedTopics.contains(topic)) {
+                            Icon(
+                                painter = painterResource(R.drawable.tick),
+                                contentDescription = null
+                            )
+                        }
+                    },
+                    text = {
+                        Text(
+                            text = topic.topic,
+                            fontWeight = FontWeight.Medium,
+                            fontFamily = interFontFamily,
+                            fontSize = 14.sp,
+                            color = colorResource(R.color.denim_blue)
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(R.drawable.topic_icon),
+                            tint = Color.Unspecified,
+                            contentDescription = null
+                        )
+                    }
+                )
+            }
+        }
+
+    }
 }
 
 @Composable
@@ -346,7 +437,17 @@ fun MoodsFilterPill(
     var moodsDropDownExpanded by remember { mutableStateOf(false) }
     var selectedMoods = remember { mutableStateListOf<EntryMood>() }
 
-    val text = if(filteredMoods.isEmpty()) stringResource(R.string.entries_pill_all_moods) else filteredMoods.toMoodText().joinToString(", ")
+
+    val text = if(filteredMoods.isEmpty()) {
+        stringResource(R.string.entries_pill_all_moods)
+    } else {
+        val stringBuilder = StringBuilder()
+        stringBuilder.append(filteredMoods.take(2).toMoodText().joinToString(", "))
+        if(filteredMoods.size >= 2){
+            stringBuilder.append(" +${filteredMoods.size - 2}")
+        }
+        stringBuilder.toString()
+    }
 
     FilterChip(
         selected = chipSelected,
@@ -622,6 +723,16 @@ fun TopicPill(topic: String){
 }
 
 @Composable
+fun List<Topic>.toTopicText() : MutableList<String> {
+    val topics = mutableListOf<String>()
+    this.forEach {
+        topics.add(it.topic)
+    }
+    return topics
+}
+
+
+@Composable
 fun List<EntryMood>.toMoodText() : MutableList<String> {
     val context = LocalContext.current
     val moods = mutableListOf<String>()
@@ -641,6 +752,7 @@ fun Preview() {
     MaterialTheme {
         JournalEntries(
             allMoods = listOf(),
+            allTopics = listOf(),
             entries = listOf(EntryDateCategory(date = "Today", entries = listOf(
                 Entry(
                     mood = EntryMood(id = Mood.EXCITED, text = R.string.entries_mood_excited, moodIcon = 0),
@@ -667,6 +779,8 @@ fun Preview() {
             onResumeClicked = {},
             onSelectedMoods = {},
             filteredMoods = listOf(),
+            filteredTopics = listOf(),
+            onSelectedTopics = {}
         )
     }
 }

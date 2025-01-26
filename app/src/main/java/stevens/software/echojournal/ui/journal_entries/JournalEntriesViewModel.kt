@@ -31,6 +31,7 @@ import stevens.software.echojournal.data.JournalEntry
 import stevens.software.echojournal.data.Topic
 import stevens.software.echojournal.data.repositories.JournalEntriesRepository
 import stevens.software.echojournal.data.repositories.MoodsRepository
+import stevens.software.echojournal.data.repositories.TopicsRepository
 import stevens.software.echojournal.ui.create_journal.EntryTopic
 import stevens.software.echojournal.ui.create_journal.Mood
 import java.time.LocalDate
@@ -44,12 +45,19 @@ class JournalEntriesViewModel(
     private val voiceRecorder: VoiceRecorder,
     private val journalEntriesRepository: JournalEntriesRepository,
     private val moodsRepository: MoodsRepository,
-    private val mediaPlayer: MediaPlayer
+    private val mediaPlayer: MediaPlayer,
+    private val topicsRepository: TopicsRepository
 ) : ViewModel() {
 
-    private val isLoading: MutableStateFlow<Boolean> = MutableStateFlow<Boolean>(true)
-    private val _filteredMoods = MutableStateFlow<MutableList<EntryMood>>(mutableListOf <EntryMood>())
+    private val allTopics: StateFlow<List<Topic>> = topicsRepository.getAllTopics()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, listOf())
+
+    private val _filteredMoods = MutableStateFlow<MutableList<EntryMood>>(mutableListOf<EntryMood>())
     val filteredMoods: StateFlow<List<EntryMood>> = _filteredMoods.asStateFlow()
+
+    private val _filteredTopics = MutableStateFlow<MutableList<Topic>>(mutableListOf<Topic>())
+    val filteredTopics: StateFlow<List<Topic>> = _filteredTopics.asStateFlow()
+
     private val journalEntries : StateFlow<List<EntryWithTopics>> = journalEntriesRepository.getAllEntriesWithTopics()
         .stateIn(viewModelScope, SharingStarted.Eagerly, listOf())
 
@@ -60,12 +68,15 @@ class JournalEntriesViewModel(
     val uiState = combine(
         filteredJournalEntries,
         filteredMoods,
-        isLoading,
+        filteredTopics,
+        allTopics,
         mediaPlayer.playingTrack,
-    ) { entriesWithTopics, filteredMoods, isLoading, playingState ->
+    ) { entriesWithTopics, filteredMoods, filteredTopics, allTopics, playingState ->
         JournalEntriesUiState(
             allMoods = moodsRepository.getAllMoods(),
+            allTopics = allTopics,
             filteredMoods = filteredMoods,
+            filteredTopics = filteredTopics,
             entries = groupEntriesByDate(
                 entries = entriesWithTopics.map { it.toEntry(playingState) },
             )
@@ -76,6 +87,8 @@ class JournalEntriesViewModel(
         JournalEntriesUiState(
             allMoods = listOf(),
             filteredMoods = listOf(),
+            filteredTopics = listOf(),
+            allTopics = listOf(),
             entries = listOf(),
         )
     )
@@ -124,6 +137,17 @@ class JournalEntriesViewModel(
             currentPosition = currentPosition,
             topics = this.topics.map { it.toEntryTopic() }
         )
+    }
+
+    fun updateFilterTopics(topics: List<Topic>) {
+        viewModelScope.launch{
+            _filteredTopics.update {
+                _filteredTopics.value.toMutableList().apply {
+                    this.clear()
+                    this.addAll(topics)
+                }
+            }
+        }
     }
 
     fun updateFilterMoods(moods: List<EntryMood>) {
@@ -182,6 +206,8 @@ fun Topic.toEntryTopic() = EntryTopic(
 data class JournalEntriesUiState(
     val allMoods: List<EntryMood>,
     val filteredMoods: List<EntryMood>,
+    val allTopics: List<Topic>,
+    val filteredTopics: List<Topic>,
     val entries: List<EntryDateCategory>
 )
 

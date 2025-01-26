@@ -377,7 +377,7 @@ private fun EntryTopic(
         modifier = Modifier
             .padding(horizontal = 16.dp)
             .fillMaxWidth()
-            .requiredSizeIn(maxHeight = 180.dp) // todo - create my own Dropdown menu as this not good
+            .requiredSizeIn(maxHeight = 180.dp) // todo - create my own Dropdown menu as this not ideal
             .background(
                 color = Color.White,
                 shape = RoundedCornerShape(8.dp)
